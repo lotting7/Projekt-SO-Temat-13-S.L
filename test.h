@@ -6,7 +6,7 @@
 #define PROJEKT_SO_TEMAT_13_S_L_MAIN_H
 
 
-class main {
+class test {
 };
 
 
