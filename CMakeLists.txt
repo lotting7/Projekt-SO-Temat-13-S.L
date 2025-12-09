@@ -6,5 +6,8 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories(.)
 
 add_executable(Projekt_SO_Temat_13_S_L
-        test.cpp
-        test.h)
+        main.cpp
+        common.h
+        tools.h
+        tools.cpp
+)
