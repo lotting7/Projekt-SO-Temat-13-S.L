@@ -6,5 +6,5 @@
 #include <iostream>
 
 int main() {
-    std::cout << "co tam u ciebie test" << std::endl;
+    std::cout << "test" << std::endl;
 }
