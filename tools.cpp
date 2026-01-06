@@ -16,7 +16,7 @@ int create_semaphores(int key, int number) { // tworzenie semaforow
     int id = semget(key, number, 0666 | IPC_CREAT); // 0666 - prawa zapisu/odczytu dla wszystkich
 
     if (id == -1) {
-        perror("Error creating semaphores");
+        perror("Error creating semaphores!");
         exit(1);
     }
     return id;

@@ -8,7 +8,7 @@
 using namespace std;
 
 int main() {
-    cout << "KASJER - Rozpoczecie" << endl;
+    cout << "KASJER - Rozpoczecie!" << endl;
 
     // komunikaty
     int msg_id = msgget(KEY_MSG, 0666);

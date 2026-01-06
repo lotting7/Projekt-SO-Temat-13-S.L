@@ -5,7 +5,7 @@
 using namespace std;
 
 int main() {
-    cout << "Inicjalizacja Jaskini" << endl;
+    cout << "Inicjalizacja Jaskini!" << endl;
 
     // 1. zasoby
 

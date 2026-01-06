@@ -9,7 +9,7 @@
 using namespace std;
 
 int main() {
-    cout << "--- GENERATOR KLIENTOW ---" << endl;
+    cout << "GENERATOR KLIENTOW " << endl;
     
     // losowanie liczb
     srand(time(NULL));

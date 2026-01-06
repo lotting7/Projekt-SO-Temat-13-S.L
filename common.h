@@ -3,7 +3,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-// limity (max osob/wiek)
+// limity (max osob i wiek)
 
 const int LIMIT_ROUTE_1 = 10;
 const int LIMIT_ROUTE_2 = 15;

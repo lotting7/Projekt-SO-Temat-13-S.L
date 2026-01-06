@@ -9,7 +9,7 @@
 using namespace std;
 
 int main() {
-    cout << "Sprzatanie - CleanUP wszystkiego" << endl;
+    cout << "Sprzatanie - CleanUP wszystkiego!" << endl;
 
     // znalezienie pamieci dzielonej
     int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0666);
