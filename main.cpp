@@ -1,50 +1,44 @@
 #include <iostream>
-#include <unistd.h> //  sleep()
 #include "common.h"
 #include "tools.h"
 
 using namespace std;
 
 int main() {
-    cout << "TEST" << endl;
+    cout << "Inicjalizacja Jaskini" << endl;
 
+    // 1. zasoby
 
-    // tworzenie tablicy w memory shared
+    // pamięć dzielona
     int shm_id = create_shared_memory(KEY_SHM, sizeof(CaveState));
-    // 4 semafory dla kazdej trasy
+
     int sem_id = create_semaphores(KEY_SEM, 4);
-    // kolejka na "biletyy"
+
+    // kolejka komunikatów (na bilety)
     int msg_id = create_msg_queue(KEY_MSG);
 
-    cout << "Udalo sie utworzyc zasoby!" << endl;
-    cout << "ID Memory: " << shm_id << endl;
-    cout << "ID Semafora: " << sem_id << endl;
-    cout << "ID Kolejki: " << msg_id << endl;
+    cout << "Zasoby utworzone (ID): SHM=" << shm_id << ", SEM=" << sem_id << ", MSG=" << msg_id << endl;
 
+    // 2. wartosci poczatkowe (semafory)
 
-    // dolaczenie do tablicy
+    set_sem_value(sem_id, 0, 1);             // 1 = otwarte (nikt nie korzysta z pamieci)
+    set_sem_value(sem_id, 1, LIMIT_ROUTE_1); // Limit miejsc na trasie 1
+    set_sem_value(sem_id, 2, LIMIT_ROUTE_2); // Limit miejsc na trasie 2
+    set_sem_value(sem_id, 3, LIMIT_BRIDGE);  // Limit miejsc na kładce
+
+    // Zerujemy pamięć dzieloną
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);
-
-    // zerowanie aby wszystko bylo puste
     jaskinia->people_on_route1 = 0;
     jaskinia->people_on_route2 = 0;
     jaskinia->people_on_bridge = 0;
-    jaskinia->bridge_direction = 0;
+    jaskinia->bridge_direction = 0; //
     jaskinia->tickets_sold = 0;
-    jaskinia->is_open = 1;          // 1 - otwarte
+    jaskinia->is_open = 1;
 
-    cout << "\n  SPRAWDZENIE LIMITOW (z pliku common.h) " << endl;
-    cout << "Limit Trasa 1: " << LIMIT_ROUTE_1 << endl;
-    cout << "Limit Kladka: " << LIMIT_BRIDGE << endl;
+    detach_memory((int*)jaskinia); // bez usuwania - odzielny plik jest od tego
 
-    // usuwanie wszystkiego, zeby nic nie zostało
-    detach_memory((int*)jaskinia); // odlaczanie
-
-    remove_shared_memory(shm_id);
-    remove_semaphores(sem_id);
-    remove_msg_queue(msg_id);
-
-    cout << "\n KONIEC" << endl;
+    cout << "Semafory ustawione" << endl;
+    cout << "./clean aby usunac wszystko" << endl;
 
     return 0;
 }

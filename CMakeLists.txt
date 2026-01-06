@@ -4,4 +4,7 @@ project(Jaskinia_Projekt)
 set(CMAKE_CXX_STANDARD 14)
 
 
-add_executable(jaskinia main.cpp tools.cpp tools.h common.h)
+add_executable(jaskinia main.cpp tools.cpp tools.h common.h
+        cleanup.cpp
+        kasjer.cpp
+        klient.cpp)

@@ -11,7 +11,7 @@ int create_semaphores(int key, int number); // tworzenie semaforow (id)
 void remove_semaphores(int sem_id); // usuwanie semaforow
 void lock_sem(int sem_id, int sem_num); // jesli semafor = 0, proces czeka
 void unlock_sem(int sem_id, int sem_num); // zwalnia miejsce i zwieksza semafor
-
+void set_sem_value(int sem_id, int sem_num, int val);
 
 // shared memory
 

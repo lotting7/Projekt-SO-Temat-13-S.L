@@ -7,7 +7,6 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/msg.h>
-#include <errno.h>
 #include "tools.h"
 
 // SEMAFORY
@@ -87,7 +86,6 @@ void detach_memory(int* addr) {
     shmdt(addr);
 }
 
-
 // kolejka wiadomosci
 
 // tworzenie kolejki
@@ -115,6 +113,15 @@ void send_ticket(int msg_id, TicketMessage msg) {
         exit(1);
     }
 }
+
+void set_sem_value(int sem_id, int sem_num, int val) {
+    // SETVAL ustawia konkretną wartość semafora (np. ilosc wolnych miejsc)
+    if (semctl(sem_id, sem_num, SETVAL, val) == -1) {
+        perror("Error setting semaphore value");
+        exit(1);
+    }
+}
+
 
 //odbieranie "biletu"
 TicketMessage receive_ticket(int msg_id) {
