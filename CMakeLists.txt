@@ -7,4 +7,5 @@ set(CMAKE_CXX_STANDARD 14)
 add_executable(jaskinia main.cpp tools.cpp tools.h common.h
         cleanup.cpp
         kasjer.cpp
-        klient.cpp)
+        klient.cpp
+        przewodnik.cpp)

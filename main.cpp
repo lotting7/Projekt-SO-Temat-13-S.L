@@ -33,6 +33,7 @@ int main() {
     jaskinia->people_on_bridge = 0;
     jaskinia->bridge_direction = 0; //
     jaskinia->tickets_sold = 0;
+    jaskinia->tickets_free = 0;
     jaskinia->is_open = 1;
 
     detach_memory((int*)jaskinia); // bez usuwania - odzielny plik jest od tego

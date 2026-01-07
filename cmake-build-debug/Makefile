@@ -225,6 +225,30 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/jaskinia.dir/build.make CMakeFiles/jaskinia.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+przewodnik.o: przewodnik.cpp.o
+.PHONY : przewodnik.o
+
+# target to build an object file
+przewodnik.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jaskinia.dir/build.make CMakeFiles/jaskinia.dir/przewodnik.cpp.o
+.PHONY : przewodnik.cpp.o
+
+przewodnik.i: przewodnik.cpp.i
+.PHONY : przewodnik.i
+
+# target to preprocess a source file
+przewodnik.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jaskinia.dir/build.make CMakeFiles/jaskinia.dir/przewodnik.cpp.i
+.PHONY : przewodnik.cpp.i
+
+przewodnik.s: przewodnik.cpp.s
+.PHONY : przewodnik.s
+
+# target to generate assembly for a file
+przewodnik.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jaskinia.dir/build.make CMakeFiles/jaskinia.dir/przewodnik.cpp.s
+.PHONY : przewodnik.cpp.s
+
 tools.o: tools.cpp.o
 .PHONY : tools.o
 
@@ -270,6 +294,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... przewodnik.o"
+	@echo "... przewodnik.i"
+	@echo "... przewodnik.s"
 	@echo "... tools.o"
 	@echo "... tools.i"
 	@echo "... tools.s"

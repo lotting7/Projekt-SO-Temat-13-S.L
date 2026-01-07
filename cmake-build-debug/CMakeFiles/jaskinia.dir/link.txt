@@ -1,1 +1,1 @@
-/usr/bin/c++ -g CMakeFiles/jaskinia.dir/main.cpp.o CMakeFiles/jaskinia.dir/tools.cpp.o CMakeFiles/jaskinia.dir/cleanup.cpp.o CMakeFiles/jaskinia.dir/kasjer.cpp.o CMakeFiles/jaskinia.dir/klient.cpp.o -o jaskinia 
+/usr/bin/c++ -g CMakeFiles/jaskinia.dir/main.cpp.o CMakeFiles/jaskinia.dir/tools.cpp.o CMakeFiles/jaskinia.dir/cleanup.cpp.o CMakeFiles/jaskinia.dir/kasjer.cpp.o CMakeFiles/jaskinia.dir/klient.cpp.o CMakeFiles/jaskinia.dir/przewodnik.cpp.o -o jaskinia 

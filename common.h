@@ -32,6 +32,7 @@ struct CaveState {
     int bridge_direction; // 0 - pusta, 1 - wchodza, 2 - wychodza
 
     int tickets_sold;
+    int tickets_free; // ile osob weszlo za darmo (dzieci ponizej 3 roku zycia)
     int is_open;    // 1 - jaskinia otwarta, 0 - zamknieta
 };
 

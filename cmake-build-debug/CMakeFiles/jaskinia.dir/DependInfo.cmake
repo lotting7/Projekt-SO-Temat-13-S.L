@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/kasjer.cpp" "CMakeFiles/jaskinia.dir/kasjer.cpp.o" "gcc" "CMakeFiles/jaskinia.dir/kasjer.cpp.o.d"
   "/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/klient.cpp" "CMakeFiles/jaskinia.dir/klient.cpp.o" "gcc" "CMakeFiles/jaskinia.dir/klient.cpp.o.d"
   "/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/main.cpp" "CMakeFiles/jaskinia.dir/main.cpp.o" "gcc" "CMakeFiles/jaskinia.dir/main.cpp.o.d"
+  "/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/przewodnik.cpp" "CMakeFiles/jaskinia.dir/przewodnik.cpp.o" "gcc" "CMakeFiles/jaskinia.dir/przewodnik.cpp.o.d"
   "/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/tools.cpp" "CMakeFiles/jaskinia.dir/tools.cpp.o" "gcc" "CMakeFiles/jaskinia.dir/tools.cpp.o.d"
   )
 

@@ -7,6 +7,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/jaskinia.dir/klient.cpp.o.d"
   "CMakeFiles/jaskinia.dir/main.cpp.o"
   "CMakeFiles/jaskinia.dir/main.cpp.o.d"
+  "CMakeFiles/jaskinia.dir/przewodnik.cpp.o"
+  "CMakeFiles/jaskinia.dir/przewodnik.cpp.o.d"
   "CMakeFiles/jaskinia.dir/tools.cpp.o"
   "CMakeFiles/jaskinia.dir/tools.cpp.o.d"
   "jaskinia"
