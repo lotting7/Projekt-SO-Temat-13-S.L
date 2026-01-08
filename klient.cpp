@@ -16,7 +16,7 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
 
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);
 
-   // kladka
+    // --- ETAP 1: KLADKA ---
     lock_sem(sem_id, 3);
 
     // Aktualizacja licznika na kladce
@@ -25,7 +25,6 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
     unlock_sem(sem_id, 0);
 
     cout << "(PID: " << getpid() << ") >> Wszedlem na KLADKE. Ide do trasy " << route << endl;
-
 
     sleep(4); // czas spedzony na kladce
 
@@ -86,14 +85,29 @@ int main() {
 
         // losowe dane
         int age = rand() % 80;
-        int route = (rand() % 2) + 1; // 1 lub 2
+
+
+        int route;
+        // dzieci ponizej 8 rz i seniozy powyzej 75 - trasa 2
+        if (age < 8 || age > 75) {
+            route = 2;
+        } else {
+            route = (rand() % 2) + 1; // reszta losowo
+        }
+
+        // losowanie powtarzajacego sie turysty - 10 procent
+        int is_repeater = 0;
+        if ((rand() % 100) < 10) {
+            is_repeater = 1;
+        }
 
         TicketMessage bilet;
         bilet.mtype = MSG_TICKET;
         bilet.visitor_id = i;
         bilet.age = age;
         bilet.route_choice = route;
-        bilet.has_guardian = (age < 18) ? 1 : 0;
+        bilet.has_guardian = (age < 8) ? 1 : 0; // wymog: dzieci < 8 pod opieka
+        bilet.is_repeater = is_repeater;
 
         send_ticket(msg_id, bilet);
 

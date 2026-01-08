@@ -46,6 +46,7 @@ struct TicketMessage {
     int age;          // wiek turysty
     int route_choice; // trasa 1 albo 2
     int has_guardian; // 1 = ma opiekuna, 0 = sam
+    int is_repeater; // powtarzajacy sie klient/turysta - czyli znizka 50%
 };
 
 #endif

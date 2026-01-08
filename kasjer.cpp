@@ -28,20 +28,22 @@ int main() {
     while (true) {
         TicketMessage bilet = receive_ticket(msg_id);
 
-        cout << "\n[KASJER] Klient ID: " << bilet.visitor_id << " (Wiek: " << bilet.age << ")" << endl;
+        cout << "\n[KASJER] Klient ID: " << bilet.visitor_id << " (Wiek: " << bilet.age << ", Trasa: " << bilet.route_choice << ")" << endl;
 
         sleep(1);
-
 
         if (bilet.age < 3) {
             jaskinia->tickets_free++;
             cout << "         Wstep WOLNY (Dziecko < 3 lat)." << endl;
         }
+        else if (bilet.is_repeater == 1) {
+            jaskinia->tickets_sold++;
+            cout << "         Bilet ZNIZKOWY (-50% dla powracajacego)." << endl;
+        }
         else {
             jaskinia->tickets_sold++;
-            cout << "         Bilet SPRZEDANY." << endl;
+            cout << "         Bilet SPRZEDANY (Cena normalna)." << endl;
         }
-
 
         cout << "RAZEM: Sprzedano: " << jaskinia->tickets_sold
              << " | Darmowe wejscia: " << jaskinia->tickets_free << endl;
