@@ -4,24 +4,21 @@
 #define COMMON_H
 
 // limity (max osob i wiek)
-
 const int LIMIT_ROUTE_1 = 10;
 const int LIMIT_ROUTE_2 = 15;
 const int LIMIT_BRIDGE = 3;
 
 const int AGE_SENIOR = 75;     // seniorzy >75 lat
-const int AGE_CHILD = 8;        // dzieci <8 lat
+const int AGE_CHILD = 8;       // dzieci <8 lat
 
-// klucze - proces musi znalezc semafor badz pamiec
-
+// klucze
 const int KEY_SEM = 1111;
 const int KEY_SHM = 2222;
 const int KEY_MSG = 3333;
 
-const int MSG_TICKET = 1; // typ wiadomosci do kolejki
+const int MSG_TICKET = 1; // typ wiadomosci
 
 // shared memory
-
 struct CaveState {
 
     // ile osob przebywa na trasie
@@ -29,24 +26,26 @@ struct CaveState {
     int people_on_route2;
     int people_on_bridge;
 
-    int bridge_direction; // 0 - pusta, 1 - wchodza, 2 - wychodza
+    int bridge_direction;
 
     int tickets_sold;
-    int tickets_free; // ile osob weszlo za darmo (dzieci ponizej 3 roku zycia)
-    int is_open;    // 1 - jaskinia otwarta, 0 - zamknieta
+    int tickets_free; // osoby ktore za darmo wchodza
+
+    int is_open;
+
+    // sygnaly dla pliku straznik
+    int route1_open; // 1 = otwarta, 0 = zamknieta - sygnal 1
+    int route2_open; // 1 = otwarta, 0 = zamknieta - sygnal 2
 };
 
 // message
-
 struct TicketMessage {
-
     long mtype;
-
-    int visitor_id;   // id procesu
-    int age;          // wiek turysty
-    int route_choice; // trasa 1 albo 2
-    int has_guardian; // 1 = ma opiekuna, 0 = sam
-    int is_repeater; // powtarzajacy sie klient/turysta - czyli znizka 50%
+    int visitor_id;
+    int age;
+    int route_choice;
+    int has_guardian;
+    int is_repeater;
 };
 
 #endif

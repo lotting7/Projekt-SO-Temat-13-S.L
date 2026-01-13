@@ -8,4 +8,5 @@ add_executable(jaskinia main.cpp tools.cpp tools.h common.h
         cleanup.cpp
         kasjer.cpp
         klient.cpp
-        przewodnik.cpp)
+        przewodnik.cpp
+        straznik.cpp)

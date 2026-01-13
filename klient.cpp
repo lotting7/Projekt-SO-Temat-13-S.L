@@ -16,7 +16,8 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
 
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);
 
-    // --- ETAP 1: KLADKA ---
+    // ETAP 1 - KLADKA
+    // wchodzimy na kladke (semafor 3)
     lock_sem(sem_id, 3);
 
     // Aktualizacja licznika na kladce
@@ -26,12 +27,33 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
 
     cout << "(PID: " << getpid() << ") >> Wszedlem na KLADKE. Ide do trasy " << route << endl;
 
-    sleep(4); // czas spedzony na kladce
+    sleep(2); // czas na kladce (skrocilem do 2s zeby szlo sprawniej przy 100 osobach)
 
-    // zejscie z kladki - wejscie na trase 1 lub 2
+    //  ETAP 2 - SPRAWDZENIE CZY TRASA OTWARTA
+
+
+    int czy_otwarte = 1;
+    if (route == 1 && jaskinia->route1_open == 0) czy_otwarte = 0;
+    if (route == 2 && jaskinia->route2_open == 0) czy_otwarte = 0;
+
+    if (czy_otwarte == 0) {
+        // TRASA ZAMKNIETA
+        cout << "(PID: " << getpid() << ") [!] Trasa " << route << " ZAMKNIETA przez Straznika! Wracam." << endl;
+
+
+        lock_sem(sem_id, 0);
+        jaskinia->people_on_bridge--;
+        unlock_sem(sem_id, 0);
+
+        unlock_sem(sem_id, 3); // zwalniamy miejsce na kladce
+        detach_memory((int*)jaskinia);
+        exit(0);
+    }
+
+    // ETAP 3 - WEJSCIE NA KLADKE
     int sem_num = (route == 1) ? 1 : 2;
 
-    // czekamy na miejsce na trasie (stojac jeszcze na kladce)
+    // czekamy na miejsce na trasie
     lock_sem(sem_id, sem_num);
 
     // wchodzimy na trase, schodzimy z kladki
@@ -46,7 +68,7 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
 
     cout << "(PID: " << getpid() << ") !!! ZSZEDLEM Z KLADKI -> JESTEM NA TRASIE " << route << " !!!" << endl;
 
-    // czas zwiedzania 5-10sek
+    // czas zwiedzania
     int czas_zwiedzania = 5 + (rand() % 6);
     sleep(czas_zwiedzania);
 
@@ -66,11 +88,10 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
 }
 
 int main() {
-    cout << "GENERATOR TURYSTOW (PROCESY)" << endl;
+    cout << "GENERATOR TURYSTOW " << endl;
     srand(time(NULL));
     setbuf(stdout, NULL);
 
-    // pobieranie id
     int msg_id = msgget(KEY_MSG, 0666);
     int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0666);
     int sem_id = semget(KEY_SEM, 4, 0666);
@@ -80,46 +101,37 @@ int main() {
         return 1;
     }
 
-    // tworzenie 15 turystow
-    for (int i = 0; i < 15; i++) {
 
-        // losowe dane
+    for (int i = 0; i < 100; i++) {
+
         int age = rand() % 80;
-
-
         int route;
-        // dzieci ponizej 8 rz i seniozy powyzej 75 - trasa 2
-        if (age < 8 || age > 75) {
-            route = 2;
-        } else {
-            route = (rand() % 2) + 1; // reszta losowo
-        }
 
-        // losowanie powtarzajacego sie turysty - 10 procent
+        if (age < 8 || age > 75) route = 2; else route = (rand() % 2) + 1;
+
         int is_repeater = 0;
-        if ((rand() % 100) < 10) {
-            is_repeater = 1;
-        }
+        if ((rand() % 100) < 10) is_repeater = 1;
 
         TicketMessage bilet;
-        bilet.mtype = MSG_TICKET;
+        // priorytet
+        if (is_repeater == 1) bilet.mtype = 2; else bilet.mtype = 1;
+
         bilet.visitor_id = i;
         bilet.age = age;
         bilet.route_choice = route;
-        bilet.has_guardian = (age < 8) ? 1 : 0; // wymog: dzieci < 8 pod opieka
+        bilet.has_guardian = (age < 8) ? 1 : 0;
         bilet.is_repeater = is_repeater;
 
         send_ticket(msg_id, bilet);
 
-        // tworzenie procesow
         pid_t pid = fork();
 
-        if (pid == 0) { // proces stworzony dodatkowo - dziecko
+        if (pid == 0) {
             turist_life(i, age, route, sem_id, shm_id);
         }
         else if (pid > 0) {
-            // rodzic czyli generator tworzoacy w petli kolejne procesory
-            usleep(900000); // zwolnilem troche generowanie zebys widzial ruch
+
+            usleep(50000);
         }
         else {
             perror("Blad fork");

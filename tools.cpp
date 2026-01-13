@@ -8,6 +8,7 @@
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include "tools.h"
+#include <errno.h>
 
 // SEMAFORY
 
@@ -123,14 +124,22 @@ void set_sem_value(int sem_id, int sem_num, int val) {
 }
 
 
-//odbieranie "biletu"
+//odbieranie "biletu" oraz priorytet czyli omijanie kolejki
 TicketMessage receive_ticket(int msg_id) {
     TicketMessage msg;
     int size = sizeof(msg) - sizeof(long);
 
-    // MSG_TICKET to typ wiadomości, na którą czekamy (z pliku common.h)
-    // Funkcja czeka (usypia proces), aż w skrzynce pojawi się wiadomość tego typu
-    if (msgrcv(msg_id, &msg, size, MSG_TICKET, 0) == -1) {
+    // sprawdzanie priorytetu - czyli typ 2
+    if (msgrcv(msg_id, &msg, size, 2, IPC_NOWAIT) != -1) {
+        return msg; // jezeli jest priorytet to go zwracamy
+    }
+
+    if (errno != ENOMSG && errno != 0) {
+        perror("Blad podczas sprawdzania priorytetu");
+    }
+
+    // brak priorytetu czyli bierzemy cokolwiek, tzn 0, że "bierzemy kogokolwiek z brzegu" a drugie 0 oznacza ze czekamy
+    if (msgrcv(msg_id, &msg, size, 0, 0) == -1) {
         perror("Error receiving ticket");
         exit(1);
     }

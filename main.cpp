@@ -34,7 +34,11 @@ int main() {
     jaskinia->bridge_direction = 0; //
     jaskinia->tickets_sold = 0;
     jaskinia->tickets_free = 0;
+
+    // ustawiamy na otwarte
     jaskinia->is_open = 1;
+    jaskinia->route1_open = 1;
+    jaskinia->route2_open = 1;
 
     detach_memory((int*)jaskinia); // bez usuwania - odzielny plik jest od tego
 
