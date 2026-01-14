@@ -12,17 +12,17 @@ using namespace std;
 // globalny wskaznik
 CaveState* jaskinia_ptr = NULL;
 
-// --- FUNKCJE OBSLUGI SYGNALOW (TERAZ DZIALAJA JAKO PRZELACZNIK) ---
+// FUNKCJE OBSLUGI SYGNALOW
 
 void przelacz_trase1(int sig) {
     if (jaskinia_ptr != NULL) {
         // Logika toggle: jesli 1 to 0, jesli 0 to 1
         if (jaskinia_ptr->route1_open == 1) {
             jaskinia_ptr->route1_open = 0;
-            cout << "\n!!! SYGNAL 1: ZAMYKAM TRASE NR 1 !!!" << endl;
+            cout << RED << "\n!!! SYGNAL 1: ZAMYKAM TRASE NR 1 !!!" << RESET << endl;
         } else {
             jaskinia_ptr->route1_open = 1;
-            cout << "\n!!! SYGNAL 1: OTWIERAM TRASE NR 1 !!!" << endl;
+            cout << GREEN << "\n!!! SYGNAL 1: OTWIERAM TRASE NR 1 !!!" << RESET << endl;
         }
     }
 }
@@ -31,16 +31,16 @@ void przelacz_trase2(int sig) {
     if (jaskinia_ptr != NULL) {
         if (jaskinia_ptr->route2_open == 1) {
             jaskinia_ptr->route2_open = 0;
-            cout << "\n!!! SYGNAL 2: ZAMYKAM TRASE NR 2 !!!" << endl;
+            cout << RED << "\n!!! SYGNAL 2: ZAMYKAM TRASE NR 2 !!!" << RESET << endl;
         } else {
             jaskinia_ptr->route2_open = 1;
-            cout << "\n!!! SYGNAL 2: OTWIERAM TRASE NR 2 !!!" << endl;
+            cout << GREEN << "\n!!! SYGNAL 2: OTWIERAM TRASE NR 2 !!!" << RESET << endl;
         }
     }
 }
 
 void koniec_programu(int sig) {
-    cout << "\nEWAKUACJA! Koncze prace..." << endl;
+    cout << RED << "\nEWAKUACJA! Koncze prace..." << RESET << endl;
     if (jaskinia_ptr != NULL) {
         jaskinia_ptr->is_open = 0;
         detach_memory((int*)jaskinia_ptr);
@@ -51,7 +51,7 @@ void koniec_programu(int sig) {
 int main() {
     cout << "--- PRZEWODNIK (MONITORING) ---" << endl;
 
-    cout << "MOJ PID: " << getpid() << " (Wpisz go w ./straznik)" << endl;
+    cout << "MOJ PID: " << BOLD << getpid() << RESET << " (Wpisz go w ./straznik)" << endl;
 
     int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0666);
     if (shm_id == -1) {
@@ -67,34 +67,45 @@ int main() {
 
     int sem_id = semget(KEY_SEM, 4, 0666);
 
-    cout << "Przewodnik: Aktywny. Obserwuje ruch i czekam na sygnaly..." << endl;
+    cout << "Przewodnik: Aktywny." << endl;
 
     while (true) {
         // czyszczenie ekranu
         cout << "\033[H\033[J";
 
-        cout << "STATUS JASKINI (PID: " << getpid() << ")" << endl;
+        cout << BOLD << "STATUS JASKINI (PID: " << getpid() << ")" << RESET << endl;
 
-        cout << " Stan otwarcia: " << (jaskinia_ptr->is_open ? "OTWARTA" : "ZAMKNIETA") << endl;
+        cout << " Stan otwarcia: ";
+        if (jaskinia_ptr->is_open) cout << GREEN << "OTWARTA" << RESET << endl;
+        else cout << RED << "ZAMKNIETA" << RESET << endl;
 
         // wyswietlanie czy trasy sa czynne
-        cout << " Trasa 1: " << (jaskinia_ptr->route1_open ? "CZYNNA" : "ZAMKNIETA [X]") << endl;
-        cout << " Trasa 2: " << (jaskinia_ptr->route2_open ? "CZYNNA" : "ZAMKNIETA [X]") << endl;
+        cout << " Trasa 1: ";
+        if (jaskinia_ptr->route1_open) cout << GREEN << "CZYNNA" << RESET << endl;
+        else cout << RED << "ZAMKNIETA [X]" << RESET << endl;
+
+        cout << " Trasa 2: ";
+        if (jaskinia_ptr->route2_open) cout << GREEN << "CZYNNA" << RESET << endl;
+        else cout << RED << "ZAMKNIETA [X]" << RESET << endl;
 
         cout << "----------------------------------" << endl;
-        cout << " BILANS: Sprzedane: " << jaskinia_ptr->tickets_sold
-             << " | Darmowe (dzieci <3): " << jaskinia_ptr->tickets_free << endl;
+        cout << " BILANS: Sprzedane: " << YELLOW << jaskinia_ptr->tickets_sold << RESET
+             << " | Darmowe (dzieci <3): " << CYAN << jaskinia_ptr->tickets_free << RESET << endl;
         cout << "----------------------------------" << endl;
         cout << " Ruch w srodku:" << endl;
-        cout << " -> Kladka (Wejscie): " << jaskinia_ptr->people_on_bridge << " / " << LIMIT_BRIDGE << " osob" << endl;
-        cout << " -> Trasa 1: " << jaskinia_ptr->people_on_route1 << " / " << LIMIT_ROUTE_1 << " osob" << endl;
-        cout << " -> Trasa 2: " << jaskinia_ptr->people_on_route2 << " / " << LIMIT_ROUTE_2 << " osob" << endl;
+
+        // strzalki kierunkowe
+        string arrow = "-";
+        if (jaskinia_ptr->bridge_direction == 1) arrow = GREEN ">>> (WCHODZA)" RESET;
+        if (jaskinia_ptr->bridge_direction == 2) arrow = MAGENTA "<<< (WYCHODZA)" RESET;
+
+        cout << " -> Kladka (Wejscie): " << BLUE << jaskinia_ptr->people_on_bridge << RESET << " / " << LIMIT_BRIDGE << " osob | Kierunek: " << arrow << endl;
+        cout << " -> Trasa 1: " << BLUE << jaskinia_ptr->people_on_route1 << RESET << " / " << LIMIT_ROUTE_1 << " osob" << endl;
+        cout << " -> Trasa 2: " << BLUE << jaskinia_ptr->people_on_route2 << RESET << " / " << LIMIT_ROUTE_2 << " osob" << endl;
         cout << "----------------------------------" << endl;
         cout << "Sterowanie: ./straznik" << endl;
 
         sleep(1);
     }
 
-    detach_memory((int*)jaskinia_ptr);
-    return 0;
 }

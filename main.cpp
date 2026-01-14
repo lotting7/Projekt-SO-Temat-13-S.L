@@ -24,7 +24,9 @@ int main() {
     set_sem_value(sem_id, 0, 1);             // 1 = otwarte (nikt nie korzysta z pamieci)
     set_sem_value(sem_id, 1, LIMIT_ROUTE_1); // Limit miejsc na trasie 1
     set_sem_value(sem_id, 2, LIMIT_ROUTE_2); // Limit miejsc na trasie 2
-    set_sem_value(sem_id, 3, LIMIT_BRIDGE);  // Limit miejsc na kładce
+
+    // 100 ustawione, poniewaz limit mostu mozna sprawdzic recznie w kliencie i dzieki temu nie blokuje semafor powrotu
+    set_sem_value(sem_id, 3, 100);
 
     // Zerujemy pamięć dzieloną
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);

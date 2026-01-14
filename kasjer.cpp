@@ -8,7 +8,7 @@
 using namespace std;
 
 int main() {
-    cout << "KASJER - Rozpoczecie!" << endl;
+    cout << BOLD << "KASJER - Rozpoczecie!" << RESET << endl;
 
     // komunikaty
     int msg_id = msgget(KEY_MSG, 0666);
@@ -34,35 +34,38 @@ int main() {
 
         // wypisanie na ekranie
         string status;
+        string color;
+
         if (bilet.mtype == 2) {
             status = "[PRIORYTET - OMINAL KOLEJKE!]";
+            color = YELLOW;
         } else {
             status = "[ZWYKLY]";
+            color = RESET;
         }
 
-        cout << "\n[KASJER] " << status << " Klient ID: " << bilet.visitor_id
-             << " (Wiek: " << bilet.age << ", Trasa: " << bilet.route_choice << ")" << endl;
+        cout << "\n[KASJER] " << color << status << " Klient ID: " << bilet.visitor_id
+             << " (Wiek: " << bilet.age << ", Trasa: " << bilet.route_choice << ")" << RESET << endl;
 
         sleep(0);
 
         // logika oplat
         if (bilet.age < 3) {
             jaskinia->tickets_free++;
-            cout << "         Wstep WOLNY (Dziecko < 3 lat)." << endl;
+            cout << CYAN << "         Wstep WOLNY (Dziecko < 3 lat)." << RESET << endl;
         }
         else if (bilet.is_repeater == 1) {
             jaskinia->tickets_sold++;
-            cout << "         Bilet ZNIZKOWY (-50% dla powracajacego)." << endl;
+            cout << GREEN << "         Bilet ZNIZKOWY (-50% dla powracajacego)." << RESET << endl;
         }
         else {
             jaskinia->tickets_sold++;
-            cout << "         Bilet SPRZEDANY (Cena normalna)." << endl;
+            cout << GREEN << "         Bilet SPRZEDANY (Cena normalna)." << RESET << endl;
         }
 
-        cout << "RAZEM: Sprzedano: " << jaskinia->tickets_sold
-             << " | Darmowe wejscia: " << jaskinia->tickets_free << endl;
+        cout << "RAZEM: Sprzedano: " << BOLD << jaskinia->tickets_sold << RESET
+             << " | Darmowe wejscia: " << BOLD << jaskinia->tickets_free << RESET << endl;
     }
 
-    detach_memory((int*)jaskinia);
-    return 0;
+
 }
