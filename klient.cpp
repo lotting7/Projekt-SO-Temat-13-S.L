@@ -5,7 +5,7 @@
 #include <sys/msg.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
-#include <sys/wait.h> // nie bedzie zombie procesow
+#include <sys/wait.h>
 #include "common.h"
 #include "tools.h"
 
@@ -35,7 +35,9 @@ void czekaj_na_most(int sem_id, CaveState* jaskinia, int dir_req) {
 
         // jesli nie mozna wejsc - zwalniamy semafor i czekamy
         unlock_sem(sem_id, 0);
-        usleep(100000);
+
+       // czekanie w kolejce
+        usleep(50000);
     }
 }
 
@@ -51,8 +53,30 @@ void zejdz_z_mostu(int sem_id, CaveState* jaskinia) {
     unlock_sem(sem_id, 0);
 }
 
-// symulacja 1 procesu
-void turist_life(int id, int age, int route, int sem_id, int shm_id) {
+// symulacja procesu
+void turist_life(int id, int sem_id, int shm_id, int msg_id) {
+
+    srand(time(NULL) ^ getpid());
+
+
+    int age = rand() % 80;
+    int route;
+    // dzieci ponizej 8 rz i seniozy powyzej 75 - trasa 2
+    if (age < 8 || age > 75) route = 2; else route = (rand() % 2) + 1;
+
+    int is_repeater = 0;
+    if ((rand() % 100) < 10) is_repeater = 1;
+
+    TicketMessage bilet = {};
+    if (is_repeater == 1) bilet.mtype = 2; else bilet.mtype = 1; // priorytet
+
+    bilet.visitor_id = id;
+    bilet.age = age;
+    bilet.route_choice = route;
+    bilet.has_guardian = (age < 8) ? 1 : 0; // wymog: dzieci < 8 z opiekunem
+    bilet.is_repeater = is_repeater;
+
+    send_ticket(msg_id, bilet); // turysta wysyla bilet do kasjera
 
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);
 
@@ -71,7 +95,8 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
 
     cout << CYAN << "(PID: " << getpid() << ") " << GREEN << ">> Wszedlem na KLADKE. Ide do trasy " << route << RESET << endl;
 
-    usleep(200000); // czas na kladce
+    // czas na kladce
+    usleep(200000);
 
     //  ETAP 2 SPRAWDZENIE CZY TRASA OTWARTA
     int czy_otwarte = 1;
@@ -128,7 +153,9 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
     unlock_sem(sem_id, sem_num);
 
     cout << CYAN << "(PID: " << getpid() << ") " << MAGENTA << "<< Wchodze na KLADKE (do wyjscia)." << RESET << endl;
-    usleep(200000); // czas powrotu
+
+    // czas powrotu
+    usleep(200000);
 
     // wyjscie z jaskini (zejscie z mostu na zewnatrz)
     zejdz_z_mostu(sem_id, jaskinia);
@@ -140,7 +167,7 @@ void turist_life(int id, int age, int route, int sem_id, int shm_id) {
 }
 
 int main() {
-    cout << "GENERATOR TURYSTOW" << endl;
+    cout << BOLD << "GENERATOR TURYSTOW" << RESET << endl;
     srand(time(NULL));
     setbuf(stdout, NULL);
 
@@ -154,44 +181,17 @@ int main() {
     }
 
     // tworzenie turystow
-    for (int i = 0; i < 600; i++) {
+    for (int i = 0; i < 300; i++) {
 
-        // losowe dane
-        int age = rand() % 80;
-        int route;
-
-        // dzieci ponizej 8 rz i seniozy powyzej 75 - trasa 2
-        if (age < 8 || age > 75) {
-            route = 2;
-        } else {
-            route = (rand() % 2) + 1; // reszta losowo
-        }
-
-        // losowanie powtarzajacego sie turysty - 10 procent
-        int is_repeater = 0;
-        if ((rand() % 100) < 10) {
-            is_repeater = 1;
-        }
-
-        TicketMessage bilet;
-        // priorytet
-        if (is_repeater == 1) bilet.mtype = 2; else bilet.mtype = 1;
-
-        bilet.visitor_id = i;
-        bilet.age = age;
-        bilet.route_choice = route;
-        bilet.has_guardian = (age < 8) ? 1 : 0; // wymog: dzieci < 8 z opiekunem
-        bilet.is_repeater = is_repeater;
-
-        send_ticket(msg_id, bilet);
+        // Rodzic tylko robi fork
 
         pid_t pid = fork();
 
         if (pid == 0) {
-            turist_life(i, age, route, sem_id, shm_id);
+            turist_life(i, sem_id, shm_id, msg_id);
         }
         else if (pid > 0) {
-             usleep(100000); // szybkosc generowania turystow
+             usleep(100000);
         }
         else {
             perror("Blad fork");
@@ -199,7 +199,7 @@ int main() {
     }
 
     cout << "Koniec generowania. Czekam na zakonczenie procesow" << endl;
-    while (wait(NULL) > 0);
+    while (wait(NULL) > 0){}
 
 
     return 0;
