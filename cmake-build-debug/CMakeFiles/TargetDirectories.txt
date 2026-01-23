@@ -1,3 +1,0 @@
-/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/cmake-build-debug/CMakeFiles/jaskinia.dir
-/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/cmake-build-debug/CMakeFiles/edit_cache.dir
-/mnt/c/Users/szym0/CLionProjects/Projekt-SO-Temat-13-S.L/cmake-build-debug/CMakeFiles/rebuild_cache.dir

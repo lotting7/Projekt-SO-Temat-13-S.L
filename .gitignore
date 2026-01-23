@@ -1,0 +1,12 @@
+.idea/
+cmake-build-debug/
+main
+kasjer
+klient
+przewodnik
+straznik
+clean
+init
+cleanup
+*.o
+*.txt
