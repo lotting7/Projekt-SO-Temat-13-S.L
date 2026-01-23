@@ -1,5 +1,6 @@
+// cleanup uzywany do awaryjnego usuwania, jezeli wystapil by jakis blad to mozna wyczyscic zasoby systemowe
+
 #include <iostream>
-#include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/msg.h>
@@ -11,8 +12,8 @@ using namespace std;
 int main() {
     cout << "Sprzatanie - CleanUP wszystkiego!" << endl;
 
-    // znalezienie pamieci dzielonej
-    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0666);
+    // pamiec dzielona
+    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600);
     if (shm_id != -1) {
         remove_shared_memory(shm_id);
         cout << "[OK] Pamiec usunieta." << endl;
@@ -21,7 +22,7 @@ int main() {
     }
 
     // semafory
-    int sem_id = semget(KEY_SEM, 4, 0666);
+    int sem_id = semget(KEY_SEM, 4, 0600);
     if (sem_id != -1) {
         remove_semaphores(sem_id);
         cout << "[OK] Semafory usuniete." << endl;
@@ -30,7 +31,7 @@ int main() {
     }
 
     // kolejka komunikatow
-    int msg_id = msgget(KEY_MSG, 0666);
+    int msg_id = msgget(KEY_MSG, 0600);
     if (msg_id != -1) {
         remove_msg_queue(msg_id);
         cout << "[OK] Kolejka usunieta." << endl;

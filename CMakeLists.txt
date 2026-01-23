@@ -9,4 +9,5 @@ add_executable(jaskinia main.cpp tools.cpp tools.h common.h
         kasjer.cpp
         klient.cpp
         przewodnik.cpp
-        straznik.cpp)
+        straznik.cpp
+)
