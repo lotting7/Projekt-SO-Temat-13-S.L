@@ -17,28 +17,28 @@
 
 // semafory
 
-int create_semaphores(int key, int number); // tworzenie semaforow (id)
-void remove_semaphores(int sem_id); // usuwanie semaforow utoworzonych
-void lock_sem(int sem_id, int sem_num); // jesli semafor = 0, proces czeka
-void unlock_sem(int sem_id, int sem_num); // zwalnia miejsce i zwieksza semafor
-void set_sem_value(int sem_id, int sem_num, int val);
+int create_semaphores(int key, int number); // tworzenie semaforow
+void remove_semaphores(int sem_id); // usuwanie semaforow
+void lock_sem(int sem_id, int sem_num); // blokuje miejsce i zmniejsza semafor
+void unlock_sem(int sem_id, int sem_num); // odblokowuje miejsce i zwieksza semafor
+void set_sem_value(int sem_id, int sem_num, int val); // ustawianie wartosci semafora
 
 // shared memory
 
-int create_shared_memory(int key, int size);
-void remove_shared_memory(int shm_id);
+int create_shared_memory(int key, int size); // tworzenie pamieci
+void remove_shared_memory(int shm_id); // usuwanie pamieci
 
-int* attach_memory(int shm_id); // proces -> pamiec (zwraca adres do tablicy)
+int* attach_memory(int shm_id); // podlacza proces do pamieci
 void detach_memory(int* addr); // odlacza proces od pamieci
 
 
 // wiadomosci
 
 int create_msg_queue(int key); // tworzenie kolejki komunikatow
-void remove_msg_queue(int msg_id);
+void remove_msg_queue(int msg_id); // usuwanie kolejki
 
 void send_ticket(int msg_id, TicketMessage msg); // wysylanie
 
-TicketMessage receive_ticket(int msg_id); /// odbieranie wiadomosci
+TicketMessage receive_ticket(int msg_id); // odbieranie
 
 #endif

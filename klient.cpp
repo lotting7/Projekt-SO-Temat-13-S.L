@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <ctime>
+#include <string>
 #include <sys/msg.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
@@ -11,15 +12,28 @@
 
 using namespace std;
 
+// funkcja do zapisywania logow w sposob bezpieczny (semafor)
+// zapobiega mieszaniu sie logow z wielu procesow
+void safe_log(int sem_id, string msg) {
+    // bierzemy "klucz" do logu
+    lock_sem(sem_id, 4);
+
+    // zapisujemy log
+    cout << "[PID KLIENTA: " + to_string(getpid()) + "] " + msg << endl;
+
+    // zwalniamy semafor
+    unlock_sem(sem_id, 4);
+}
+
 
 // wejscie na most
 // dir_req: 1 = wchodzimy do jaskini, 2 = wychodzimy z jaskini
 void czekaj_na_most(int sem_id, CaveState* jaskinia, int dir_req) {
     while (true) {
-        // blokowanie dostepu do pamieci
+        // blokada semafora
         lock_sem(sem_id, 0);
 
-        // sprawdzamy czy sa spelnione warunki
+        // sprawdzenie warunkow wejscia na most
         bool jest_miejsce = (jaskinia->people_on_bridge < LIMIT_BRIDGE);
         bool dobry_kierunek = (jaskinia->bridge_direction == 0 || jaskinia->bridge_direction == dir_req);
 
@@ -28,12 +42,12 @@ void czekaj_na_most(int sem_id, CaveState* jaskinia, int dir_req) {
             jaskinia->people_on_bridge++;
             jaskinia->bridge_direction = dir_req; // ustawiamy kierunek
 
-            // zwolnienie blokady
+            // zwalniamy semafor i wychodzimy z petli
             unlock_sem(sem_id, 0);
             break;
         }
 
-        // jesli nie mozna wejsc - zwalniamy semafor i czekamy
+        // nie mozna wejsc na most, zwalniamy semafor
         unlock_sem(sem_id, 0);
 
        // czekanie w kolejce
@@ -45,7 +59,7 @@ void zejdz_z_mostu(int sem_id, CaveState* jaskinia) {
     lock_sem(sem_id, 0); // uzycie mutex, czyli blokada ktora pozwala jednemu procesowi uzywac danej zmiennej
 
     jaskinia->people_on_bridge--;
-    // jesli ostatnia osoba zeszla, most jest pusty (kierunek 0)
+    // reset kierunku jesli most pusty
     if (jaskinia->people_on_bridge == 0) {
         jaskinia->bridge_direction = 0;
     }
@@ -53,11 +67,10 @@ void zejdz_z_mostu(int sem_id, CaveState* jaskinia) {
     unlock_sem(sem_id, 0);
 }
 
-// symulacja procesu
+// funkcja zycia turysty
 void turist_life(int id, int sem_id, int shm_id, int msg_id) {
 
     srand(time(NULL) ^ getpid());
-
 
     int age = rand() % 80;
     int route;
@@ -70,21 +83,33 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
     TicketMessage bilet = {};
     if (is_repeater == 1) bilet.mtype = 2; else bilet.mtype = 1; // priorytet
 
-    bilet.visitor_id = id;
-    bilet.age = age;
-    bilet.route_choice = route;
-    bilet.has_guardian = (age < 8) ? 1 : 0; // wymog: dzieci < 8 z opiekunem
-    bilet.is_repeater = is_repeater;
 
-    send_ticket(msg_id, bilet); // turysta wysyla bilet do kasjera
+    bilet.visitor_id = getpid(); // id turysty to jego PID
+    bilet.age = age; // wiek turysty
+    bilet.route_choice = route; // wybor trasy
+    bilet.is_repeater = is_repeater; // czy turysta jest powracajacy
+
+    // dziecko ma opieke doroslego (ponizej 8 lat)
+    if (age < 8) {
+        bilet.has_guardian = 1;
+    } else {
+        bilet.has_guardian = 0;
+    }
+
+    send_ticket(msg_id, bilet); // wysylka biletu do kasjera przez turyste
 
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);
 
 
     // ETAP 0 REZERWACJA MIEJSCA W JASKINI - przed kładką
 
-    // Ustalamy, ktory semafor nas interesuje
-    int sem_num = (route == 1) ? 1 : 2;
+    // wybieramy semafor do rezerwacji miejsca na trasie
+    int sem_num;
+    if (route == 1) {
+        sem_num = 1;
+    } else {
+        sem_num = 2;
+    }
 
     // blokada semafora az nie zwolni sie miejsce
     lock_sem(sem_id, sem_num);
@@ -93,7 +118,7 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
    // ETAP 1 WEJSCIE NA KLADKE
     czekaj_na_most(sem_id, jaskinia, 1); // kierunek 1 = wchodzi proces
 
-    cout << CYAN << "(PID: " << getpid() << ") " << GREEN << ">> Wszedlem na KLADKE. Ide do trasy " << route << RESET << endl;
+    safe_log(sem_id, ">> Wchodze na KLADKE. Ide do trasy " + to_string(route));
 
     // czas na kladce
     usleep(200000);
@@ -104,8 +129,8 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
     if (route == 2 && jaskinia->route2_open == 0) czy_otwarte = 0;
 
     if (czy_otwarte == 0) {
-        // TRASA ZAMKNIETA
-        cout << CYAN << "(PID: " << getpid() << ") " << RED << "[!] Trasa " << route << " ZAMKNIETA przez Straznika! Powrot." << RESET << endl;
+
+        safe_log(sem_id, "[!] Trasa " + to_string(route) + " ZAMKNIETA przez Straznika! Powrot.");
 
         zejdz_z_mostu(sem_id, jaskinia);
 
@@ -118,9 +143,8 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
 
     // ETAP 3 - WEJSCIE NA TRASE
 
-
-    // wchodzimy na trase, schodzimy z kladki
-    lock_sem(sem_id, 0); // mutex
+    // aktualizacja stanu jaskini - zejscie z kladki, wejscie na trase
+    lock_sem(sem_id, 0); // mutex dla pamieci jaskini
 
     jaskinia->people_on_bridge--;      // schodzimy z kladki
     if (jaskinia->people_on_bridge == 0) jaskinia->bridge_direction = 0; // reset kierunku jesli pusty
@@ -130,7 +154,8 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
 
     unlock_sem(sem_id, 0);
 
-    cout << CYAN << "(PID: " << getpid() << ") " << BLUE << "!!! ZSZEDLEM Z KLADKI -> JESTEM NA TRASIE " << route << " !!!" << RESET << endl;
+
+    safe_log(sem_id, "!!! ZSZEDLEM Z KLADKI -> JESTEM NA TRASIE " + to_string(route) + " !!!");
 
     // czas zwiedzania
     int czas_zwiedzania = 1500000 + rand() % 1000000;
@@ -138,7 +163,7 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
 
     // ETAP 4 POWROT
 
-    cout << CYAN << "(PID: " << getpid() << ") " << RESET << "Koniec zwiedzania. Czekam na powrot..." << endl;
+    safe_log(sem_id, "Koniec zwiedzania. Czekam na powrot...");
 
     // ponowne wejscie na kladke (czekamy az most zwolni sie dla wychodzacych)
     czekaj_na_most(sem_id, jaskinia, 2);
@@ -149,10 +174,10 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
     else jaskinia->people_on_route2--;
     unlock_sem(sem_id, 0);
 
-    // faktycznie zwalnianie miejsca (semaforu) na trasie dla tych czekajacych na trawie
+    // zwolnienie miejsca na trasie (semafor z etapu 0)
     unlock_sem(sem_id, sem_num);
 
-    cout << CYAN << "(PID: " << getpid() << ") " << MAGENTA << "<< Wchodze na KLADKE (do wyjscia)." << RESET << endl;
+    safe_log(sem_id, "<< Wchodze na KLADKE (do wyjscia).");
 
     // czas powrotu
     usleep(200000);
@@ -160,30 +185,35 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
     // wyjscie z jaskini (zejscie z mostu na zewnatrz)
     zejdz_z_mostu(sem_id, jaskinia);
 
-    cout << CYAN << "(PID: " << getpid() << ") " << RESET << "Wyszedlem z jaskini." << endl;
+
+    safe_log(sem_id, "Wyszedlem z jaskini.");
 
     detach_memory((int*)jaskinia);
     exit(0);
 }
 
 int main() {
-    cout << BOLD << "GENERATOR TURYSTOW" << RESET << endl;
+
+    // inicjalizacja randomu
     srand(time(NULL));
     setbuf(stdout, NULL);
 
-    int msg_id = msgget(KEY_MSG, 0666);
-    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0666);
-    int sem_id = semget(KEY_SEM, 4, 0666);
+    // pobranie ID zasobow IPC
+    int msg_id = msgget(KEY_MSG, 0600);
+    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600);
+
+    // pobranie semaforow
+    int sem_id = semget(KEY_SEM, 5, 0600);
 
     if (msg_id == -1 || shm_id == -1 || sem_id == -1) {
-        perror("Blad! Wpisz ./init");
+        perror("Blad klienta - brak zasobow (uruchom ./main)");
         return 1;
     }
 
-    // tworzenie turystow
-    for (int i = 0; i < 300; i++) {
+    // generowanie turystow
+    for (int i = 0; i < 1000; i++) {
 
-        // Rodzic tylko robi fork
+        // fork procesu turysty
 
         pid_t pid = fork();
 
@@ -198,7 +228,7 @@ int main() {
         }
     }
 
-    cout << "Koniec generowania. Czekam na zakonczenie procesow" << endl;
+
     while (wait(NULL) > 0){}
 
 

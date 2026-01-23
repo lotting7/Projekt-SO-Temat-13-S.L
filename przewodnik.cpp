@@ -9,11 +9,12 @@
 
 using namespace std;
 
-// globalny wskaznik
-CaveState* jaskinia_ptr = NULL;
+
+CaveState* jaskinia_ptr = NULL; // wskaznik do pamieci dzielonej
 
 // FUNKCJE OBSLUGI SYGNALOW
 
+// sygnal do przelaczenia trasy 1 (otworz/zamknij)
 void przelacz_trase1(int sig) {
     if (jaskinia_ptr != NULL) {
         // Logika toggle: jesli 1 to 0, jesli 0 to 1
@@ -27,6 +28,7 @@ void przelacz_trase1(int sig) {
     }
 }
 
+// sygnal do przelaczenia trasy 2 (otworz/zamknij)
 void przelacz_trase2(int sig) {
     if (jaskinia_ptr != NULL) {
         if (jaskinia_ptr->route2_open == 1) {
@@ -39,6 +41,7 @@ void przelacz_trase2(int sig) {
     }
 }
 
+// sygnal do zakonczenia programu
 void koniec_programu(int sig) {
     cout << RED << "\nEWAKUACJA! Koncze prace..." << RESET << endl;
     if (jaskinia_ptr != NULL) {
@@ -48,30 +51,32 @@ void koniec_programu(int sig) {
     exit(0);
 }
 
+
 int main() {
     cout << "--- PRZEWODNIK (MONITORING) ---" << endl;
 
     cout << "MOJ PID: " << BOLD << getpid() << RESET << " (Wpisz go w ./straznik)" << endl;
 
-    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0666);
+    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600); // pobranie istniejacej pamieci
     if (shm_id == -1) {
         perror("Jaskinia 'nie uruchomiona' - ./init");
         return 1;
     }
-    jaskinia_ptr = (CaveState*)attach_memory(shm_id);
+    jaskinia_ptr = (CaveState*)attach_memory(shm_id); // podlaczenie pamieci dzielonej
+    jaskinia_ptr->pid_przewodnik = getpid(); // zapisanie PID przewodnika w pamieci
 
     // REJESTRACJA SYGNALOW
     signal(SIGUSR1, przelacz_trase1);
     signal(SIGUSR2, przelacz_trase2);
     signal(SIGINT, koniec_programu);
 
-    int sem_id = semget(KEY_SEM, 4, 0666);
+    int sem_id = semget(KEY_SEM, 4, 0600); // pobranie istniejacych semaforow
 
     cout << "Przewodnik: Aktywny." << endl;
 
     while (true) {
         // czyszczenie ekranu
-        cout << "\033[H\033[J";
+       system("clear");
 
         cout << BOLD << "STATUS JASKINI (PID: " << getpid() << ")" << RESET << endl;
 

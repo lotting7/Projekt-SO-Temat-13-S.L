@@ -12,9 +12,10 @@
 
 // SEMAFORY
 
-int create_semaphores(int key, int number) { // tworzenie semaforow
+// tworzenie semaforow
+int create_semaphores(int key, int number) {
 
-    int id = semget(key, number, 0666 | IPC_CREAT); // 0666 - prawa zapisu/odczytu dla wszystkich
+    int id = semget(key, number, 0600 | IPC_CREAT); // tworzenie semafora z podanym kluczem i liczba semaforow
 
     if (id == -1) {
         perror("Error creating semaphores!");
@@ -24,42 +25,54 @@ int create_semaphores(int key, int number) { // tworzenie semaforow
 
 }
 
-void remove_semaphores(int sem_id) { // usuwanie semaforow
-    if (semctl(sem_id, 0, IPC_RMID) == -1) { // IPC_RMID = remove id
+// usuwanie semaforow
+void remove_semaphores(int sem_id) {
+    if (semctl(sem_id, 0, IPC_RMID) == -1) { // usuwanie semafora
         perror("Error removing semaphores");
     }
 }
 
-void lock_sem(int sem_id, int sem_num) { // zablokowanie semafora (oczekiwanie badz ruszenie)
+// blokowanie semafora
+void lock_sem(int sem_id, int sem_num) {
     struct sembuf op;
-    op.sem_num = sem_num; // numer semafora
-    op.sem_op = -1;       // -1 oznacza zajecie miejsce, jezeli = 0 zatrzymuje proces
-    op.sem_flg = 0;       // standard
+    op.sem_num = sem_num; // numer semafora w zestawie
+    op.sem_op = -1; // zmniejszenie wartosci semafora o 1 (blokada)
+    op.sem_flg = 0; // flagi operacji
 
+    // wykonanie operacji semafory
     if (semop(sem_id, &op, 1) == -1) {
+        // Ignorujemy błędy przy zamykaniu
+        if (errno == EIDRM || errno == EINVAL) {
+            exit(0);
+        }
         perror("Error locking semaphore");
         exit(1);
     }
 }
 
+// odblokowanie semafora
 void unlock_sem(int sem_id, int sem_num) {
-    // odblokowanie semafora
-    struct sembuf op;
-    op.sem_num = sem_num;
-    op.sem_op = 1;        // +1 oznacza "zwolnij" czyli zwieksza licznik
-    op.sem_flg = 0;
+    struct sembuf op; // struktura operacji semafora
+    op.sem_num = sem_num; // numer semafora w zestawie
+    op.sem_op = 1; // zwiekszenie wartosci semafora o 1 (odblokowanie)
+    op.sem_flg = 0; // flagi operacji
 
+    // wykonanie operacji semafory
     if (semop(sem_id, &op, 1) == -1) {
+        // Ignorujemy błędy przy zamykaniu
+        if (errno == EIDRM || errno == EINVAL) {
+            exit(0);
+        }
         perror("Error unlocking semaphore");
         exit(1);
     }
 }
 
-// shared memory
+// SHARED MEMORY
 
 //tworzenie pamieci
 int create_shared_memory(int key, int size) {
-    int id = shmget(key, size, 0666 | IPC_CREAT);
+    int id = shmget(key, size, 0600 | IPC_CREAT);
     if (id == -1) {
         perror("Error creating shared memory");
         exit(1);
@@ -67,6 +80,7 @@ int create_shared_memory(int key, int size) {
     return id;
 }
 
+// usuwanie pamieci
 void remove_shared_memory(int shm_id) {
     shmctl(shm_id, IPC_RMID, NULL);
 }
@@ -74,24 +88,25 @@ void remove_shared_memory(int shm_id) {
 // podlaczanie procesu do pamieci
 int* attach_memory(int shm_id) {
 
-    void* addr = shmat(shm_id, NULL, 0); // zwraca void*, rzutujemy na int*
+    void* addr = shmat(shm_id, NULL, 0); // NULL = system wybiera adres, 0 = read+write
 
     if (addr == (void*)-1) {
         perror("Error attaching memory");
         exit(1);
     }
-    return (int*)addr;
+    return (int*)addr; // zwracamy adres pamieci jako int*
 }
 
+// odlaczanie procesu od pamieci
 void detach_memory(int* addr) {
     shmdt(addr);
 }
 
-// kolejka wiadomosci
+// KOLEJKA WIADOMOSCI
 
 // tworzenie kolejki
 int create_msg_queue(int key) {
-    int id = msgget(key, 0666 | IPC_CREAT);
+    int id = msgget(key, 0600 | IPC_CREAT);
     if (id == -1) {
         perror("Error creating queue");
         exit(1);
@@ -99,6 +114,7 @@ int create_msg_queue(int key) {
     return id;
 }
 
+// usuwanie kolejki
 void remove_msg_queue(int msg_id) {
     msgctl(msg_id, IPC_RMID, NULL);
 }
@@ -106,18 +122,19 @@ void remove_msg_queue(int msg_id) {
 // wysylanie "biletu"
 void send_ticket(int msg_id, TicketMessage msg) {
 
-    int size = sizeof(msg) - sizeof(long); // rozmiar danych
+    int size = sizeof(msg) - sizeof(long); // rozmiar bez pola mtype
 
 
-    if (msgsnd(msg_id, &msg, size, 0) == -1) { // 0 = blokada, kolejka pelna
+    if (msgsnd(msg_id, &msg, size, 0) == -1) { // 0 = blokujacy tryb wysylki, -1 = blad
         perror("Error sending ticket");
         exit(1);
     }
 }
 
+// ustawianie wartosci semafora
 void set_sem_value(int sem_id, int sem_num, int val) {
-    // SETVAL ustawia konkretną wartość semafora (np. ilosc wolnych miejsc)
-    if (semctl(sem_id, sem_num, SETVAL, val) == -1) {
+
+    if (semctl(sem_id, sem_num, SETVAL, val) == -1) { // setval = ustaw wartosc
         perror("Error setting semaphore value");
         exit(1);
     }
@@ -129,16 +146,17 @@ TicketMessage receive_ticket(int msg_id) {
     TicketMessage msg;
     int size = sizeof(msg) - sizeof(long);
 
-    // sprawdzanie priorytetu - czyli typ 2
+    // sprawdzenie czy jest wiadomosc o priorytecie 2 (VIP)
     if (msgrcv(msg_id, &msg, size, 2, IPC_NOWAIT) != -1) {
-        return msg; // jezeli jest priorytet to go zwracamy
+        return msg; // zwroc wiadomosc priorytetowa
     }
 
+    // jesli blad inny niz brak wiadomosci to wypisz
     if (errno != ENOMSG && errno != 0) {
         perror("Blad podczas sprawdzania priorytetu");
     }
 
-    // brak priorytetu czyli bierzemy cokolwiek, tzn 0, że "bierzemy kogokolwiek z brzegu" a drugie 0 oznacza ze czekamy
+    // odbierz normalna wiadomosc (typ 1)
     if (msgrcv(msg_id, &msg, size, 0, 0) == -1) {
         perror("Error receiving ticket");
         exit(1);

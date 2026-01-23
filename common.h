@@ -36,6 +36,8 @@ struct CaveState {
     // sygnaly dla pliku straznik
     int route1_open; // 1 = otwarta, 0 = zamknieta - sygnal 1
     int route2_open; // 1 = otwarta, 0 = zamknieta - sygnal 2
+    int pid_przewodnik; // PID przewodnika do wysylania sygnalow
+    int pid_manager; // PID managera do wysylania sygnalu konca
 };
 
 // message
