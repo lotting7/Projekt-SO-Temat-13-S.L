@@ -1,11 +1,12 @@
-// definicje funkcji
+// Plik naglowkowy z deklaracjami funkcji pomocniczych do obslugi semaforow,
+// pamieci dzielonej i kolejek komunikatow.
 
 #ifndef TOOLS_H
 #define TOOLS_H
 
 #include "common.h"
 
-// kolory ansi - do czytelnosci logow
+// Kolo kolorowe logi w terminalu (ANSI)
 #define RESET   "\033[0m"
 #define RED     "\033[31m"
 #define GREEN   "\033[32m"
@@ -15,30 +16,46 @@
 #define CYAN    "\033[36m"
 #define BOLD    "\033[1m"
 
-// semafory
+// SEMAFORY	- deklaracje funkcji
+// Tworzy semafory
+int create_semaphores(int key, int number);
 
-int create_semaphores(int key, int number); // tworzenie semaforow
-void remove_semaphores(int sem_id); // usuwanie semaforow
-void lock_sem(int sem_id, int sem_num); // blokuje miejsce i zmniejsza semafor
-void unlock_sem(int sem_id, int sem_num); // odblokowuje miejsce i zwieksza semafor
-void set_sem_value(int sem_id, int sem_num, int val); // ustawianie wartosci semafora
+// Usuwa semafory
+void remove_semaphores(int sem_id);
 
-// shared memory
+// Operacje na semaforach - blokowanie/odblokowywanie
+void lock_sem(int sem_id, int sem_num);
+void unlock_sem(int sem_id, int sem_num);
 
-int create_shared_memory(int key, int size); // tworzenie pamieci
-void remove_shared_memory(int shm_id); // usuwanie pamieci
+// Ustawianie wartosci semafora
+void set_sem_value(int sem_id, int sem_num, int val);
 
-int* attach_memory(int shm_id); // podlacza proces do pamieci
-void detach_memory(int* addr); // odlacza proces od pamieci
+// Pobieranie wartosci semafora
+int get_sem_value(int sem_id, int sem_num);
+
+// PAMIEC DZIELONA - deklaracje funkcji
+// Tworzy segment pamieci dzielonej
+int create_shared_memory(int key, int size);
+
+// Oznacza segment pamieci do usuniecia
+void remove_shared_memory(int shm_id);
+
+// Podlacza pamiec dzielona do przestrzeni adresowej procesu
+int* attach_memory(int shm_id);
+
+// Odłącza pamiec dzielona od przestrzeni adresowej procesu
+void detach_memory(int* addr);
 
 
-// wiadomosci
+// KOLEJKA KOMUNKATOW - deklaracje funkcji
+// Tworzy kolejke komunikatow
+int create_msg_queue(int key);
 
-int create_msg_queue(int key); // tworzenie kolejki komunikatow
-void remove_msg_queue(int msg_id); // usuwanie kolejki
+// Usuwa kolejke komunikatow
+void remove_msg_queue(int msg_id);
 
-void send_ticket(int msg_id, TicketMessage msg); // wysylanie
-
-TicketMessage receive_ticket(int msg_id); // odbieranie
+// WYSYLANIE I ODBIERANIE BILETOW
+void send_ticket(int msg_id, int sem_id, TicketMessage msg);
+TicketMessage receive_ticket(int msg_id, int sem_id);
 
 #endif
