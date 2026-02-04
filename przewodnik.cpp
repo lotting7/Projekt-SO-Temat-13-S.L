@@ -9,15 +9,17 @@
 
 using namespace std;
 
+// Zmienne globalne do obsługi sygnałów i stanu jaskini
+CaveState* jaskinia_ptr = NULL;
+int g_sem_id = -1;
+int koniec = 0;
 
-CaveState* jaskinia_ptr = NULL; // wskaznik do pamieci dzielonej
+// -- OBSLUGA SYGNALOW --
 
-// FUNKCJE OBSLUGI SYGNALOW
-
-// sygnal do przelaczenia trasy 1 (otworz/zamknij)
+// Funkcje przełączające stan tras w jaskini
 void przelacz_trase1(int sig) {
-    if (jaskinia_ptr != NULL) {
-        // Logika toggle: jesli 1 to 0, jesli 0 to 1
+    if (jaskinia_ptr != NULL && g_sem_id != -1) {
+        lock_sem(g_sem_id, SEM_MUTEX);
         if (jaskinia_ptr->route1_open == 1) {
             jaskinia_ptr->route1_open = 0;
             cout << RED << "\n!!! SYGNAL 1: ZAMYKAM TRASE NR 1 !!!" << RESET << endl;
@@ -25,12 +27,13 @@ void przelacz_trase1(int sig) {
             jaskinia_ptr->route1_open = 1;
             cout << GREEN << "\n!!! SYGNAL 1: OTWIERAM TRASE NR 1 !!!" << RESET << endl;
         }
+        unlock_sem(g_sem_id, SEM_MUTEX);
     }
 }
 
-// sygnal do przelaczenia trasy 2 (otworz/zamknij)
 void przelacz_trase2(int sig) {
-    if (jaskinia_ptr != NULL) {
+    if (jaskinia_ptr != NULL && g_sem_id != -1) {
+        lock_sem(g_sem_id, SEM_MUTEX);
         if (jaskinia_ptr->route2_open == 1) {
             jaskinia_ptr->route2_open = 0;
             cout << RED << "\n!!! SYGNAL 2: ZAMYKAM TRASE NR 2 !!!" << RESET << endl;
@@ -38,53 +41,60 @@ void przelacz_trase2(int sig) {
             jaskinia_ptr->route2_open = 1;
             cout << GREEN << "\n!!! SYGNAL 2: OTWIERAM TRASE NR 2 !!!" << RESET << endl;
         }
+        unlock_sem(g_sem_id, SEM_MUTEX);
     }
 }
-
-// sygnal do zakonczenia programu
+// Obsługa sygnalu SIGINT do zakończenia programu (Ctrl+C)
 void koniec_programu(int sig) {
-    cout << RED << "\nEWAKUACJA! Koncze prace..." << RESET << endl;
-    if (jaskinia_ptr != NULL) {
-        jaskinia_ptr->is_open = 0;
-        detach_memory((int*)jaskinia_ptr);
-    }
-    exit(0);
+    koniec = 1;
 }
-
 
 int main() {
     cout << "--- PRZEWODNIK (MONITORING) ---" << endl;
+    cout << "MOJ PID: " << BOLD << getpid() << RESET << endl;
 
-    cout << "MOJ PID: " << BOLD << getpid() << RESET << " (Wpisz go w ./straznik)" << endl;
-
-    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600); // pobranie istniejacej pamieci
+	// Podłączenie do istniejącej pamięci dzielonej jaskini
+    int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600);
     if (shm_id == -1) {
-        perror("Jaskinia 'nie uruchomiona' - ./init");
+        perror("Jaskinia 'nie uruchomiona' - ./main");
         return 1;
     }
-    jaskinia_ptr = (CaveState*)attach_memory(shm_id); // podlaczenie pamieci dzielonej
-    jaskinia_ptr->pid_przewodnik = getpid(); // zapisanie PID przewodnika w pamieci
 
-    // REJESTRACJA SYGNALOW
+    g_sem_id = semget(KEY_SEM, SEM_COUNT, 0600);
+    if (g_sem_id == -1) {
+        perror("Brak semaforow");
+        return 1;
+    }
+
+	// Podłączenie do pamięci dzielonej
+    jaskinia_ptr = (CaveState*)attach_memory(shm_id);
+
+	// Zapisanie swojego PIDu do pamięci dzielonej
+    lock_sem(g_sem_id, SEM_MUTEX);
+    jaskinia_ptr->pid_przewodnik = getpid();
+    unlock_sem(g_sem_id, SEM_MUTEX);
+
+	// Ustawienie obsługi sygnałów
     signal(SIGUSR1, przelacz_trase1);
     signal(SIGUSR2, przelacz_trase2);
     signal(SIGINT, koniec_programu);
 
-    int sem_id = semget(KEY_SEM, 4, 0600); // pobranie istniejacych semaforow
-
     cout << "Przewodnik: Aktywny." << endl;
 
-    while (true) {
-        // czyszczenie ekranu
-       system("clear");
+    while (!koniec) {
+        system("clear");
+
+		// Odczyt i wyświetlenie stanu jaskini
+        lock_sem(g_sem_id, SEM_MUTEX);
 
         cout << BOLD << "STATUS JASKINI (PID: " << getpid() << ")" << RESET << endl;
 
+		// Stan jaskini
         cout << " Stan otwarcia: ";
         if (jaskinia_ptr->is_open) cout << GREEN << "OTWARTA" << RESET << endl;
         else cout << RED << "ZAMKNIETA" << RESET << endl;
 
-        // wyswietlanie czy trasy sa czynne
+		// Stan Tras
         cout << " Trasa 1: ";
         if (jaskinia_ptr->route1_open) cout << GREEN << "CZYNNA" << RESET << endl;
         else cout << RED << "ZAMKNIETA [X]" << RESET << endl;
@@ -93,24 +103,38 @@ int main() {
         if (jaskinia_ptr->route2_open) cout << GREEN << "CZYNNA" << RESET << endl;
         else cout << RED << "ZAMKNIETA [X]" << RESET << endl;
 
+		// Bilans biletów
         cout << "----------------------------------" << endl;
         cout << " BILANS: Sprzedane: " << YELLOW << jaskinia_ptr->tickets_sold << RESET
              << " | Darmowe (dzieci <3): " << CYAN << jaskinia_ptr->tickets_free << RESET << endl;
         cout << "----------------------------------" << endl;
         cout << " Ruch w srodku:" << endl;
 
-        // strzalki kierunkowe
+		// Wizualizacja kierunku mostu
         string arrow = "-";
         if (jaskinia_ptr->bridge_direction == 1) arrow = GREEN ">>> (WCHODZA)" RESET;
         if (jaskinia_ptr->bridge_direction == 2) arrow = MAGENTA "<<< (WYCHODZA)" RESET;
 
         cout << " -> Kladka (Wejscie): " << BLUE << jaskinia_ptr->people_on_bridge << RESET << " / " << LIMIT_BRIDGE << " osob | Kierunek: " << arrow << endl;
+        cout << " -> Czeka wejscie: " << jaskinia_ptr->bridge_waiting_in
+             << " | wyjscie: " << jaskinia_ptr->bridge_waiting_out << endl;
         cout << " -> Trasa 1: " << BLUE << jaskinia_ptr->people_on_route1 << RESET << " / " << LIMIT_ROUTE_1 << " osob" << endl;
         cout << " -> Trasa 2: " << BLUE << jaskinia_ptr->people_on_route2 << RESET << " / " << LIMIT_ROUTE_2 << " osob" << endl;
         cout << "----------------------------------" << endl;
         cout << "Sterowanie: ./straznik" << endl;
 
-        sleep(1);
+        unlock_sem(g_sem_id, SEM_MUTEX);
+
+
+        usleep(200000); // Odświeżanie co 200ms interfejsu
     }
+
+    // Zakończenie pracy przewodnika
+    cout << RED << "\nPrzewodnik: Koncze prace." << RESET << endl;
+    if (jaskinia_ptr != NULL) {
+        detach_memory((int*)jaskinia_ptr);
+    }
+
+    return 0;
 
 }
