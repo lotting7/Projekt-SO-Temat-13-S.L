@@ -1,44 +1,38 @@
-// cleanup uzywany do awaryjnego usuwania, jezeli wystapil by jakis blad to mozna wyczyscic zasoby systemowe
+// Cleanup jako narzedzie awaryjne do czyszczenia zasobow IPC i zabicia procesow jaskini
 
 #include <iostream>
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/msg.h>
+#include <cstdlib>
+#include <unistd.h>
 #include "common.h"
 #include "tools.h"
 
 using namespace std;
 
 int main() {
-    cout << "Sprzatanie - CleanUP wszystkiego!" << endl;
+    cout << "CLEANUP - czyszczenie wszystkiego..." << endl;
 
-    // pamiec dzielona
+    // Wymuszone zabicie procesow jaskini
+    system("pkill -9 -f './main'");
+    system("pkill -9 -f './klient'");
+    system("pkill -9 -f './kasjer'");
+    system("pkill -9 -f './przewodnik'");
+    system("pkill -9 -f './straznik'");
+
+    usleep(300000); // Czas na zakonczenie procesow
+
+    // Usun zasoby IPC
     int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600);
-    if (shm_id != -1) {
-        remove_shared_memory(shm_id);
-        cout << "[OK] Pamiec usunieta." << endl;
-    } else {
-        cout << "[INFO] Pamiec nie istniala." << endl;
-    }
+    if (shm_id != -1) shmctl(shm_id, IPC_RMID, NULL);
 
-    // semafory
-    int sem_id = semget(KEY_SEM, 4, 0600);
-    if (sem_id != -1) {
-        remove_semaphores(sem_id);
-        cout << "[OK] Semafory usuniete." << endl;
-    } else {
-        cout << "[INFO] Semafory nie istnialy." << endl;
-    }
+    int sem_id = semget(KEY_SEM, SEM_COUNT, 0600);
+    if (sem_id != -1) semctl(sem_id, 0, IPC_RMID);
 
-    // kolejka komunikatow
     int msg_id = msgget(KEY_MSG, 0600);
-    if (msg_id != -1) {
-        remove_msg_queue(msg_id);
-        cout << "[OK] Kolejka usunieta." << endl;
-    } else {
-        cout << "[INFO] Kolejka nie istniala." << endl;
-    }
+    if (msg_id != -1) msgctl(msg_id, IPC_RMID, NULL);
 
-    cout << "Wyczyszczone wszystko" << endl;
+    cout << "Gotowe!" << endl;
     return 0;
 }
