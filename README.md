@@ -1,8 +1,8 @@
 # 1. Środowisko i narzędzia
 
 * **System operacyjny:** Linux / Windows 11 z WSL2 (Ubuntu).
-* **Język:** C++ (Standard $C++11$).
-* **Kompilator:** GCC $(g++).$
+* **Język:** C++ (Standard C++11).
+* **Kompilator:** GCC (g++).
 * **Zarządzanie kompilacją:** Makefile.
 * **Edytor:** CLion
 
