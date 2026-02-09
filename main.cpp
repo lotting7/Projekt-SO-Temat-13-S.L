@@ -62,7 +62,7 @@ void handle_sigint(int sig) {
 
         detach_memory((int*)jaskinia);
 }
-    sleep(1);
+    sleep(1); // Czas na zakończenie procesów
 
     cleanup_resources();
     cout << "[MANAGER] Gotowe." << endl;
@@ -154,6 +154,16 @@ int main() {
         exit(1);
     }
 
+    // Zapisanie PIDu klienta do pamięci dzielonej
+    {
+        CaveState* jask_tmp = (CaveState*)attach_memory(shm_id);
+        lock_sem(sem_id, SEM_MUTEX);
+        jask_tmp->pid_klient = pid_klient;
+        unlock_sem(sem_id, SEM_MUTEX);
+        detach_memory((int*)jask_tmp);
+    }
+
+
     // PRZEWODNIK
     pid_przewodnik = fork();
     if (pid_przewodnik == 0) {
@@ -168,34 +178,32 @@ int main() {
     waitpid(pid_klient, NULL, 0);
 
 	// Sprawdzamy czy w jaskini nie ma już turystów
-    int shm_check = shmget(KEY_SHM, sizeof(CaveState), 0600);
-    CaveState* jask = (CaveState*)attach_memory(shm_check);
+    CaveState* jask = (CaveState*)attach_memory(shm_id);
 
-    int timeout = 0;
-    const int MAX_TIMEOUT = 500000;
-
-    while (timeout < MAX_TIMEOUT) {
-
-		int shm_temp_id = shmget(KEY_SHM, sizeof(CaveState), 0600);
-    	CaveState* temp_jaskinia = (CaveState*)attach_memory(shm_temp_id);
+	// Pętla sprawdzająca stan jaskini - czeka aż nie będzie turystów na trasach, moście i w kolejkach do mostu
+    while (true) {
 
         lock_sem(sem_id, SEM_MUTEX);
+        // Pobieramy aktualny stan jaskini
         int t1 = jask->people_on_route1;
         int t2 = jask->people_on_route2;
         int most = jask->people_on_bridge;
+        int w_in = jask->bridge_waiting_in;
+        int w_out = jask->bridge_waiting_out;
         unlock_sem(sem_id, SEM_MUTEX);
 
-        if (t1 == 0 && t2 == 0 && most == 0) {
+		// Jeśli nie ma nikogo na trasach, moście i nikt nie czeka na most, możemy zakończyć symulację
+        if (t1 == 0 && t2 == 0 && most == 0 && w_in == 0 && w_out == 0) {
             break;
         }
 
-        timeout++;
+     usleep(100000); // Sprawdzanie co 100ms
 
     }
 
     detach_memory((int*)jask);
 
-    sleep(2);
+   sleep(2); // Opóźnienie na spokojne zakończenie procesów i zapis logów
 
     // Zamykamy przewodnika
     if (pid_przewodnik > 0) {

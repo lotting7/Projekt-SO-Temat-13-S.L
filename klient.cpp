@@ -22,7 +22,7 @@ void safe_log(int sem_id, string msg) {
 
 // Funkcja obsługująca wejście na most z odpowiednimi warunkami
 // (kierunek: 1 - wejście, 2 - wyjście)
-void wejdz_na_most(int sem_id, CaveState* jaskinia, int kierunek) {
+int wejdz_na_most(int sem_id, CaveState* jaskinia, int kierunek, int route) {
 
 	// Zwiekszenie liczby czekajacych na most w danym kierunku
     lock_sem(sem_id, SEM_MUTEX);
@@ -35,6 +35,23 @@ void wejdz_na_most(int sem_id, CaveState* jaskinia, int kierunek) {
 
 	// Petla oczekujaca na mozliwosc wejscia na most
     while (true) {
+
+        // Sprawdzenie czy trasa jest otwarta (tylko przy wejściu do jaskini)
+        if (kierunek == 1) {
+            lock_sem(sem_id, SEM_MUTEX);
+            int otwarta = 1;
+            if (route == 1 && jaskinia->route1_open == 0) otwarta = 0;
+            if (route == 2 && jaskinia->route2_open == 0) otwarta = 0;
+            if (otwarta == 0) {
+                jaskinia->bridge_waiting_in--;
+                unlock_sem(sem_id, SEM_MUTEX);
+                return 0;
+            }
+            unlock_sem(sem_id, SEM_MUTEX);
+        }
+
+
+
         lock_sem(sem_id, SEM_MUTEX);
 
         bool mozna = false;
@@ -60,13 +77,13 @@ void wejdz_na_most(int sem_id, CaveState* jaskinia, int kierunek) {
             jaskinia->bridge_direction = kierunek;
             unlock_sem(sem_id, SEM_MUTEX);
 
-            return;
+            return 1;
         }
 
 		// Jesli nie mozna wejsc na most, zwalniamy mutex i czekamy
         unlock_sem(sem_id, SEM_MUTEX);
 
-		usleep(50000); // Sleep aby uniknac busy-waitingu
+	usleep(50000); // Sleep aby uniknac busy-waitingu
     }
 }
 
@@ -91,6 +108,7 @@ void zejdz_z_mostu(int sem_id, CaveState* jaskinia) {
 // Główna funkcja symulująca życie turysty
 void turist_life(int id, int sem_id, int shm_id, int msg_id) {
 
+    setvbuf(stdout, NULL, _IONBF, 0);
 	// Inicjalizacja generatora liczb losowych
     srand(time(NULL) ^ getpid());
 
@@ -142,7 +160,14 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
     lock_sem(sem_id, sem_trasa);
 
 	// Wejście na most
-    wejdz_na_most(sem_id, jaskinia, 1);
+    int wszedl = wejdz_na_most(sem_id, jaskinia, 1, route);
+
+    if (wszedl == 0) {
+        safe_log(sem_id, "[!] Trasa " + to_string(route) + " ZAMKNIETA! Rezygnuje przed mostem.");
+        unlock_sem(sem_id, sem_trasa);
+        detach_memory((int*)jaskinia);
+        exit(0);
+    }
 
     safe_log(sem_id, ">> Na KLADCE, ide do trasy " + to_string(route));
 
@@ -177,13 +202,13 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
 
     safe_log(sem_id, "!!! JESTEM NA TRASIE " + to_string(route) + " !!!");
 
-  	usleep(20000 + rand() % 30000); // Symulacja czasu zwiedzania losowo od 20ms do 50ms
+    usleep(20000 + rand() % 30000); // Symulacja czasu zwiedzania losowo od 20ms do 50ms
 
     safe_log(sem_id, "Koncze zwiedzanie, wracam...");
 
 	// POWROT
 	// Wejście na most w kierunku wyjścia
-    wejdz_na_most(sem_id, jaskinia, 2);
+        wejdz_na_most(sem_id, jaskinia, 2, route);
 
 	// Zwolnienie miejsca na trasie
     lock_sem(sem_id, SEM_MUTEX);
@@ -196,7 +221,7 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
 
     safe_log(sem_id, "<< Na KLADCE, ide do wyjscia.");
 
-   	usleep(10000); // Symulacja czasu przejścia po moście
+   usleep(10000); // Symulacja czasu przejścia po moście
 
     zejdz_z_mostu(sem_id, jaskinia);
 
@@ -232,7 +257,7 @@ int main() {
 			break;
         }
 
-      usleep(10000); // Opóźnienie między tworzeniem turystów
+     usleep(10000); // Opóźnienie między tworzeniem turystów
     }
 
     while (wait(NULL) > 0) {} // Czekaj na zakończenie wszystkich procesów turystów

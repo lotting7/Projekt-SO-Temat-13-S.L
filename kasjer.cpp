@@ -1,5 +1,4 @@
 #include <iostream>
-#include <unistd.h>
 #include <sys/msg.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
@@ -10,8 +9,10 @@ using namespace std;
 
 int main() {
 
-	// POBIERANIE ID ZASOBOW IPC
-	// Pamiec dzielona jaskini i semafory sa potrzebne do aktualizacji stanu jaskini
+    setvbuf(stdout, NULL, _IONBF, 0);
+
+    // POBIERANIE ID ZASOBOW IPC
+    // Pamiec dzielona jaskini i semafory sa potrzebne do aktualizacji stanu jaskini
     int msg_id = msgget(KEY_MSG, 0600);
     int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600);
     int sem_id = semget(KEY_SEM, SEM_COUNT, 0600);
@@ -21,21 +22,21 @@ int main() {
         return 1;
     }
 
-	// PODLACZENIE DO PAMIECI JASKINI
+    // PODLACZENIE DO PAMIECI JASKINI
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);
 
-	// GLOWNA PETLA KASJERA
+    // GLOWNA PETLA KASJERA
     while (true) {
 
-		// Odbior biletu z kolejki komunikatow
+        // Odbior biletu z kolejki komunikatow
         TicketMessage bilet = receive_ticket(msg_id, sem_id);
 
-		// Aktualizacja stanu jaskini w pamieci dzielonej
+        // Aktualizacja stanu jaskini w pamieci dzielonej
         lock_sem(sem_id, SEM_MUTEX);
 
         string typ_biletu = "NORMALNY";
 
-		// Logika biletów
+        // Logika biletów
         if (bilet.age < 3) {
             jaskinia->tickets_free++;
             typ_biletu = "DARMOWY (<3 lat)";
@@ -59,7 +60,7 @@ int main() {
             priorytet = "STD";
         }
 
-		// Log sprzedazy biletu
+        // Log sprzedazy biletu
         cout << "[SPRZEDAZ] "
              << "PID: " << bilet.visitor_id
              << " | Wiek: " << bilet.age

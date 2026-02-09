@@ -81,11 +81,22 @@ int main() {
 
     cout << "Przewodnik: Aktywny." << endl;
 
+    // Licznik do sprawdzenia czy jaskinia jest pusta
+    int pusta_licznik = 0;
+
     while (!koniec) {
         system("clear");
 
 		// Odczyt i wyświetlenie stanu jaskini
         lock_sem(g_sem_id, SEM_MUTEX);
+
+        // Zapisujemy wartosci do sprawdzenia po wyswietleniu. Potrzebne do automatycznego zakonczenia
+        int t1 = jaskinia_ptr->people_on_route1;
+        int t2 = jaskinia_ptr->people_on_route2;
+        int most = jaskinia_ptr->people_on_bridge;
+        int w_in = jaskinia_ptr->bridge_waiting_in;
+        int w_out = jaskinia_ptr->bridge_waiting_out;
+        int suma_biletow = jaskinia_ptr->tickets_sold + jaskinia_ptr->tickets_free;
 
         cout << BOLD << "STATUS JASKINI (PID: " << getpid() << ")" << RESET << endl;
 
@@ -125,8 +136,33 @@ int main() {
 
         unlock_sem(g_sem_id, SEM_MUTEX);
 
+       // Instrukcja automatycznego zakończenia pracy przewodnika, gdy jaskinia jest pusta i nie ma już klientów
+       // (po 10 kolejnych odczytach bez zmian)
+        if (t1 == 0 && t2 == 0 && most == 0 && w_in == 0 && w_out == 0
+            && suma_biletow > 0) {
 
-        usleep(200000); // Odświeżanie co 200ms interfejsu
+            // Sprawdzenie czy klient nadal żyje
+            lock_sem(g_sem_id, SEM_MUTEX);
+            int pid_kl = jaskinia_ptr->pid_klient;
+            unlock_sem(g_sem_id, SEM_MUTEX);
+
+            // kill(pid_kl, 0) zwraca 0 jeśli proces istnieje, -1 jeśli nie istnieje lub brak uprawnień
+            bool klient_zyje = (pid_kl > 0 && kill(pid_kl, 0) == 0);
+
+            // Jeśli klient nie żyje, zwiększamy licznik pustych odczytów
+            if (!klient_zyje) {
+                pusta_licznik++;
+                if (pusta_licznik >= 10) {
+                    cout << GREEN << "\n[PRZEWODNIK] Jaskinia pusta - koncze monitoring." << RESET << endl;
+                    break;
+                }
+            }
+            // Jeśli klient nadal żyje, resetujemy licznik pustych odczytów
+            } else {
+                pusta_licznik = 0;
+            }
+
+      usleep(200000); // Odświeżanie co 200ms interfejsu
     }
 
     // Zakończenie pracy przewodnika

@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <unistd.h>
 #include "common.h"
-#include "tools.h"
 
 using namespace std;
 
@@ -20,8 +19,6 @@ int main() {
     system("pkill -9 -f './kasjer'");
     system("pkill -9 -f './przewodnik'");
     system("pkill -9 -f './straznik'");
-
-    usleep(300000); // Czas na zakonczenie procesow
 
     // Usun zasoby IPC
     int shm_id = shmget(KEY_SHM, sizeof(CaveState), 0600);
