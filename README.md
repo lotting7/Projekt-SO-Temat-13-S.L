@@ -108,24 +108,22 @@ Projekt spełnia kluczowe wymagania funkcjonalne narzucone przez temat:
 * **Kod realizujący:**
     * Plik `klient.cpp`: Warunek [`if (jaskinia->people_on_bridge < LIMIT_BRIDGE)`](https://github.com/lotting7/Projekt-SO-Temat-13-S.L/blob/7182421020f55b30858c237338802d3770fc65cc/klient.cpp#L59C3-L63C14)
 
-**Test 2: Blokada ruchu dwukierunkowego (Wąskie gardło)**
-* **Opis:** Symulacja konfliktu grupy wchodzącej i wychodzącej w celu weryfikacji poprawności działania semaforów i flagi kierunku (`bridge_direction`), co ma zapobiec zakleszczeniom na moście.
-* **Oczekiwany rezultat:** Grupa wchodząca musi zaczekać, aż kładka zostanie całkowicie opuszczona przez grupę wychodzącą (wyzerowanie flagi kierunku).
-* **Kod realizujący:**
-    * Plik `klient.cpp`: Warunek w wejdz_na_most [`if (jaskinia->bridge_direction == 0...)`](https://github.com/lotting7/Projekt-SO-Temat-13-S.L/blob/7182421020f55b30858c237338802d3770fc65cc/klient.cpp#L61C12-L61C14) oraz w zejdz_z_mostu [`if (jaskinia->people_on_bridge == 0) ...`](https://github.com/lotting7/Projekt-SO-Temat-13-S.L/blob/7182421020f55b30858c237338802d3770fc65cc/klient.cpp#L98C2-L105C2) weryfikujący zgodność kierunku.
+**Test 2: Odporność na nagły skok obciążenia**
+* **Opis:** Symulacja ekstremalnego współbieżnego dostępu do zasobów (mostu). Duża grupa procesów zostaje wstrzymana tuż przed wejściem na „kładkę”, a następnie wszystkie jednocześnie próbują wykonać operację na semaforze. Test weryfikuje, czy mechanizmy synchronizacji są odporne na deadlock w momencie nagłego ataku procesów na jeden zasób.
+* **Oczekiwany rezultat:** System zachowuje stabilność i nie ulega zawieszeniu. Semafory poprawnie szeregują dostęp, przepuszczając procesy zgodnie z limitem mostu, mimo ogromnej kolejki oczekujących.
+* **Weryfikacja (Logi):** Porównanie liczby wejść i wyjść w pliku raportu – muszą być idealnie równe (test dla 5000 procesów, z przekierowaniem tylko na jedną trasę).
 
-**Test 3: Weryfikacja reguł biletowych i wieku**
-* **Opis:** Próba zakupu biletu przez osobę w wieku 80 lat na Trasę nr 1 oraz dziecka bez opiekuna, w celu sprawdzenia czy system automatycznie egzekwuje regulamin przydziału tras.
-* **Oczekiwany rezultat:** System automatycznie przydziela Trasę 2 dla seniorów i dzieci, uniemożliwiając wybór Trasy 1.
+**Test 3: Wytrzymałość systemu logowania**
+* **Opis:** Test wytrzymałościowy mechanizmu logowania. Sprawdzamy, czy funkcja `safe_log` poprawnie serializuje dostęp do pliku raportu w warunkach ekstremalnego obciążenia. Zmuszamy dużą ilość procesów do zapisu w tej samej chwili (bez opóźnień), weryfikując skuteczność semafora `SEM_LOG`. Poprawny wynik testu (brak uszkodzonych linii) potwierdza, że sekcja krytyczna jest szczelna i chroni przed uszkodzeniem danych.
+* **Oczekiwany rezultat:** Plik z logami pozostaje spójny i czytelny. Nie występują uszkodzone logi, sklejone komunikaty z różnych procesów ani błędy formatowania, co potwierdza atomowość operacji zapisu.
+* **Weryfikacja (Logi):** Wyszukanie linii uszkodzonych. Brak wyników oznacza sukces. LOGI W PLIKU PDF
 * **Kod realizujący:**
-    * Plik `klient.cpp`: Instrukcja warunkowa [`if (age > AGE_SENIOR)`](https://github.com/lotting7/Projekt-SO-Temat-13-S.L/blob/7182421020f55b30858c237338802d3770fc65cc/klient.cpp#L119C2-L124C6) nadpisująca wybór trasy.
+    * Plik `klient.cpp`: funkcja [`safe_log`](https://github.com/lotting7/Projekt-SO-Temat-13-S.L/blob/fc4c1713b0f5f4b2d40299c3e7fca92cd21cf67e/klient.cpp#L17C1-L21C2), która zapobiega mieszaniu się logów z różnych procesów z użyciem semafora.
 
-**Test 4: Obsługa sygnału od Strażnika**
-* **Opis:** Wysłanie sygnału systemowego przez proces Strażnika do Przewodnika podczas oczekiwania grupy na wejście, w celu weryfikacji dynamicznego zamykania trasy.
-* **Oczekiwany rezultat:** Przewodnik zmienia status trasy na ZAMKNIETA, a nowi turyści rezygnują z wejścia i kończą proces.
-* **Kod realizujący:**
-    * Plik `przewodnik.cpp`: Handler sygnału [`przelacz_trase1 oraz przelacz_trase2`](https://github.com/lotting7/Projekt-SO-Temat-13-S.L/blob/7182421020f55b30858c237338802d3770fc65cc/przewodnik.cpp#L20C1-L44C41)
-    * Plik `klient.cpp`: Reakcja turysty na zamkniętą trasę [`exit`](https://github.com/lotting7/Projekt-SO-Temat-13-S.L/blob/7182421020f55b30858c237338802d3770fc65cc/klient.cpp#L165C4-L170C6)
+**Test 4: Weryfikacja Przepustowości Krytycznej**
+* **Opis:** Test sprawdza poprawność synchronizacji i atomowość operacji przy maksymalnej prędkości przetwarzania CPU. Usuwamy wszystkie sztuczne opóźnienia w kodzie klienta i przewodnika, uruchamiając dużą ilość procesów. Celem jest wywołanie *race conditions* - sytuacji, w której procesy ścigają się o dostęp do sekcji krytycznych przy standardowych założeniach projektu.
+* **Oczekiwany rezultat:** Program nie wpada w deadlock i kończy się poprawnie, czyszcząc wszystkie zasoby stworzone. Wszystkie procesy zostają obsłużone, a limity osób na trasach i moście nigdy nie zostają złamane mimo ogromnego naporu.
+* **Weryfikacja (Logi):** Sprawdzenie spójności liczników osób na trasach oraz weryfikacja poprawności zakończenia wszystkich procesów potomnych. LOGI W PLIKU PDF
 
 # 7. Funkcje wymagane przez projekt
 
