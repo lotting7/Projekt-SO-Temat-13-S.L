@@ -128,16 +128,20 @@ void turist_life(int id, int sem_id, int shm_id, int msg_id) {
     srand(time(NULL) ^ getpid());
 
     // Losowanie wieku turysty
-    int age = 25; // rand() % 80;
+    int age = rand() % 80;
     int route;
 
     // Wybór trasy na podstawie wieku
-   route = 1;
+    if (age < AGE_CHILD || age > AGE_SENIOR) {
+        route = 2;
+    } else {
+        route = (rand() % 2) + 1;
+    }
 
 
     // Szansa 10% bycia turystą powracającym
     int is_repeater = 0;
-   // if ((rand() % 100) < 10) is_repeater = 1;
+    if ((rand() % 100) < 10) is_repeater = 1;
 
 
     // Zakup biletu
