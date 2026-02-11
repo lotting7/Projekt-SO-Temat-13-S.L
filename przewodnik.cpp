@@ -19,7 +19,7 @@ int koniec = 0;
 // Funkcje przełączające stan tras w jaskini
 void przelacz_trase1(int sig) {
     if (jaskinia_ptr != NULL && g_sem_id != -1) {
-        lock_sem(g_sem_id, SEM_MUTEX);
+        lock_sem(g_sem_id, SEM_ACCESS);
         if (jaskinia_ptr->route1_open == 1) {
             jaskinia_ptr->route1_open = 0;
             cout << RED << "\n!!! SYGNAL 1: ZAMYKAM TRASE NR 1 !!!" << RESET << endl;
@@ -27,13 +27,13 @@ void przelacz_trase1(int sig) {
             jaskinia_ptr->route1_open = 1;
             cout << GREEN << "\n!!! SYGNAL 1: OTWIERAM TRASE NR 1 !!!" << RESET << endl;
         }
-        unlock_sem(g_sem_id, SEM_MUTEX);
+        unlock_sem(g_sem_id, SEM_ACCESS);
     }
 }
 
 void przelacz_trase2(int sig) {
     if (jaskinia_ptr != NULL && g_sem_id != -1) {
-        lock_sem(g_sem_id, SEM_MUTEX);
+        lock_sem(g_sem_id, SEM_ACCESS);
         if (jaskinia_ptr->route2_open == 1) {
             jaskinia_ptr->route2_open = 0;
             cout << RED << "\n!!! SYGNAL 2: ZAMYKAM TRASE NR 2 !!!" << RESET << endl;
@@ -41,7 +41,7 @@ void przelacz_trase2(int sig) {
             jaskinia_ptr->route2_open = 1;
             cout << GREEN << "\n!!! SYGNAL 2: OTWIERAM TRASE NR 2 !!!" << RESET << endl;
         }
-        unlock_sem(g_sem_id, SEM_MUTEX);
+        unlock_sem(g_sem_id, SEM_ACCESS);
     }
 }
 // Obsługa sygnalu SIGINT do zakończenia programu (Ctrl+C)
@@ -70,9 +70,9 @@ int main() {
     jaskinia_ptr = (CaveState*)attach_memory(shm_id);
 
 	// Zapisanie swojego PIDu do pamięci dzielonej
-    lock_sem(g_sem_id, SEM_MUTEX);
+    lock_sem(g_sem_id, SEM_ACCESS);
     jaskinia_ptr->pid_przewodnik = getpid();
-    unlock_sem(g_sem_id, SEM_MUTEX);
+    unlock_sem(g_sem_id, SEM_ACCESS);
 
 	// Ustawienie obsługi sygnałów
     signal(SIGUSR1, przelacz_trase1);
@@ -88,7 +88,7 @@ int main() {
         system("clear");
 
 		// Odczyt i wyświetlenie stanu jaskini
-        lock_sem(g_sem_id, SEM_MUTEX);
+        lock_sem(g_sem_id, SEM_ACCESS);
 
         // Zapisujemy wartosci do sprawdzenia po wyswietleniu. Potrzebne do automatycznego zakonczenia
         int t1 = jaskinia_ptr->people_on_route1;
@@ -134,7 +134,7 @@ int main() {
         cout << "----------------------------------" << endl;
         cout << "Sterowanie: ./straznik" << endl;
 
-        unlock_sem(g_sem_id, SEM_MUTEX);
+        unlock_sem(g_sem_id, SEM_ACCESS);
 
        // Instrukcja automatycznego zakończenia pracy przewodnika, gdy jaskinia jest pusta i nie ma już klientów
        // (po 10 kolejnych odczytach bez zmian)
@@ -142,9 +142,9 @@ int main() {
             && suma_biletow > 0) {
 
             // Sprawdzenie czy klient nadal żyje
-            lock_sem(g_sem_id, SEM_MUTEX);
+            lock_sem(g_sem_id, SEM_ACCESS);
             int pid_kl = jaskinia_ptr->pid_klient;
-            unlock_sem(g_sem_id, SEM_MUTEX);
+            unlock_sem(g_sem_id, SEM_ACCESS);
 
             // kill(pid_kl, 0) zwraca 0 jeśli proces istnieje, -1 jeśli nie istnieje lub brak uprawnień
             bool klient_zyje = (pid_kl > 0 && kill(pid_kl, 0) == 0);
@@ -162,7 +162,7 @@ int main() {
                 pusta_licznik = 0;
             }
 
-      usleep(200000); // Odświeżanie co 200ms interfejsu
+    usleep(200000); // Odświeżanie co 200ms interfejsu
     }
 
     // Zakończenie pracy przewodnika

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unistd.h>
 #include <sys/msg.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
@@ -24,7 +25,6 @@ int main() {
 
     // PODLACZENIE DO PAMIECI JASKINI
     CaveState* jaskinia = (CaveState*)attach_memory(shm_id);
-
     // GLOWNA PETLA KASJERA
     while (true) {
 
@@ -32,7 +32,7 @@ int main() {
         TicketMessage bilet = receive_ticket(msg_id, sem_id);
 
         // Aktualizacja stanu jaskini w pamieci dzielonej
-        lock_sem(sem_id, SEM_MUTEX);
+        lock_sem(sem_id, SEM_ACCESS);
 
         string typ_biletu = "NORMALNY";
 
@@ -50,7 +50,7 @@ int main() {
             typ_biletu = "NORMALNY";
         }
 
-        unlock_sem(sem_id, SEM_MUTEX);
+        unlock_sem(sem_id, SEM_ACCESS);
 
         // Wyświetlenie informacji o sprzedanym bilecie
         string priorytet;

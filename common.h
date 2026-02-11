@@ -20,7 +20,7 @@ const int MSG_TICKET = 1; // typ wiadomości biletu normalnego
 // INDEKSY SEMAFORÓW - do kontroli dostępu i zasobów
 
 // chroni dostęp do pamięci dzielonej
-const int SEM_MUTEX = 0;
+const int SEM_ACCESS = 0;
 
 // liczba wolnych miejsc na trasach i moście
 const int SEM_ROUTE1 = 1;
@@ -41,7 +41,7 @@ const int SEM_QUEUE_SPACE = 7;
 const int SEM_COUNT = 8;
 
 // maksymalna liczba wiadomości w kolejce
-const int MSG_QUEUE_MAX = 70;
+const int MSG_QUEUE_MAX = 3500;
 
 // STRUKTURA PAMIECI DZIELONEJ JASKINI - do stanu jaskini
 struct CaveState {
@@ -80,6 +80,7 @@ struct TicketMessage {
     int route_choice; // wybrana trasa (1 lub 2)
     int has_guardian; // czy ma opiekuna (0 = nie, 1 = tak)
     int is_repeater; // czy jest powracającym gościem (0 = nie, 1 = tak)
+
 };
 
 #endif

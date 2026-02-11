@@ -34,11 +34,11 @@ int main() {
     }
 
     // Pobranie PIDow przewodnika i managera z pamieci dzielonej
-    lock_sem(sem_id, SEM_MUTEX);
+    lock_sem(sem_id, SEM_ACCESS);
     int pid_guide = jaskinia->pid_przewodnik; // pobranie PID przewodnika z pamieci dzielonej
     int pid_mgr = jaskinia->pid_manager; // pobranie PID managera z pamieci dzielonej
 	jaskinia->pid_straznik = getpid(); // zapisanie swojego PIDu do pamieci dzielonej
-    unlock_sem(sem_id, SEM_MUTEX);
+    unlock_sem(sem_id, SEM_ACCESS);
 
 
     // Weryfikacja PIDow
